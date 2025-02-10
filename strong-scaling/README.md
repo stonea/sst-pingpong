@@ -18,7 +18,7 @@ The following will do the same for the strong scaling of MPI oversubscription:
 
 After all submitted jobs are complete, use the `consolidate.py` script to combine all the timing information into a single `.csv` file. If you provide an argument to the script, it will use it as the output file name, otherwise it will write to `times.csv`.
 
-Finally, use the `plots.py script to generate plots showing the strong scaling. This script takes 2 arguments. First, the input `.csv` file that contains timing information. Second, the prefix to prepend to the generated plot file names. We suggest using the name of the system the run was performed on. So, if you wanted to compare the effects of node count on strong scaling on Frontier, you would run the following three commands:
+Finally, use the `plots.py` script to generate plots showing the strong scaling. This script takes 2 arguments. First, the input `.csv` file that contains timing information. Second, the prefix to prepend to the generated plot file names. We suggest using the name of the system the run was performed on. So, if you wanted to compare the effects of node count on strong scaling on Frontier, you would run the following three commands:
 ```
 ./submit.sh "1 2 4 8 16 32 64 128" 1 1 1024 1024 100000
 python3 consolidate.py frontier.csv

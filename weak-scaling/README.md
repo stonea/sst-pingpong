@@ -2,8 +2,9 @@ This directory contains files for running weak scaling evaluation on the ping po
 
 There is some slight complication to doing weak scaling evaluation for this simulation. First, we need to scale all parts of the computation, meaning we need to scale both the number of components and the number of messages. Second, because the simulation takes the side length as an argument, we need to do some calculations to correctly scale. Finally, because we'll be taking some square roots, these values are rounded to their nearest whole value. 
 
-Base simulation: 128x128 components, 512 messages per node
+Base simulation: 128x128 components, 512 messages per node.
 Performing the necessary multiplications and square rooting, we get the following component grids for different node counts:
+```
 1: 128x128
 2: 181x181
 4: 256x256
@@ -13,6 +14,7 @@ Performing the necessary multiplications and square rooting, we get the followin
 64: 1024x1024
 128: 1448x1448
 256: 2048x2048
+```
 
 For message count, we multiply the node count by 512, no rounding needed.
 
