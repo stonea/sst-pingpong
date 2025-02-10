@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 1 && "$1" == "clean" ]]; then
+    set -e -x
+    rm -f *.o pingpongballs pingpongballs_real ./tmp
+    exit
+fi
+
+(set -x; chpl --fast pingPongBallFocused.chpl)
+#(set -x; chpl --fast pingPongStencil.chpl)
+
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 0)
+(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 250000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 50000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 75000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 100000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 125000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 150000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 175000000)
+#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 200000000)
+exit
+
+nodecount=( 1 2 4 8 16 32)
+#algs=( 0 1 2)
+algs=( 0)
+sqrt_els_per_node=128
+messages_per_node=512
+#num_timesteps=300000000
+num_timesteps=300
+time_to_run=$(echo "($num_timesteps*50)/1" | bc)
+
+#for alg in "${algs[@]}"; do
+#  for nc in "${nodecount[@]}"; do
+#    n=$(echo "(sqrt($sqrt_els_per_node*$sqrt_els_per_node*$nc))/1" | bc)
+#    nBalls=$(echo "($messages_per_node*$nc)/1" | bc)
+#    ./pingPongBallFocused -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run --algorithm=$alg
+#  done
+#
+#  echo ""
+#done
+
+
+nodecount=( 1 2 4 8 16 32)
+sqrt_els_per_node=92681
+messages_per_node=512
+num_timesteps=10
+time_to_run=$(echo "($num_timesteps*50)/1" | bc)
+
+# weak scaling
+for nc in "${nodecount[@]}"; do
+  n=$(echo "(sqrt($sqrt_els_per_node*$sqrt_els_per_node*$nc))/1" | bc)
+  nBalls=$(echo "($messages_per_node*$nc)/1" | bc)
+  (set -x; ./pingPongStencil -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run)
+done
+
+# strong scaling
+#for nc in "${nodecount[@]}"; do
+#  (set -x; ./pingPongStencil -nl $nc --N=1024 --numDims=2 --numBalls=128 --timeToRun=30000)
+#done
+
