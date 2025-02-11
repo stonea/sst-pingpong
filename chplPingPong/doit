@@ -39,7 +39,7 @@ if [[ "$runStrongScaling" == 'true' ]]; then
       for nc in "${nodecount[@]}"; do
         for pn_msg in "${num_balls[@]}"; do
           for pn_els in "${sqrt_els[@]}"; do
-            (set -x ./pingPongBallFocused -nl $nc --N=$pn_els --numDims=2 --numBalls=$pn_msg --timeToRun=$time_to_run --algorithm=$alg)
+            (set -x; ./pingPongBallFocused -nl $nc --N=$pn_els --numDims=2 --randomOverlap=$pn_msg --timeToRun=$time_to_run --algorithm=$alg)
             echo ""
           done
         done
@@ -53,7 +53,7 @@ if [[ "$runStrongScaling" == 'true' ]]; then
       for nc in "${nodecount[@]}"; do
         for pn_msg in "${num_balls[@]}"; do
           for pn_els in "${sqrt_els[@]}"; do
-            (set -x ./pingPongStencil -nl $nc --N=$pn_els --numDims=2 --numBalls=$pn_msg --timeToRun=$time_to_run)
+            (set -x; ./pingPongStencil -nl $nc --N=$pn_els --numDims=2 --randomOverlap=$pn_msg --timeToRun=$time_to_run)
             echo ""
           done
         done
@@ -73,7 +73,7 @@ if [[ "$runWeakScaling" == 'true' ]]; then
           for pn_els in "${sqrt_els_per_node[@]}"; do
             n=$(echo "(sqrt($pn_els*$pn_els*$nc))/1" | bc)
             nBalls=$(echo "($pn_msg*$nc)/1" | bc)
-            (set -x ./pingPongBallFocused -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run --algorithm=$alg)
+            (set -x; ./pingPongBallFocused -nl $nc --N=$n --numDims=2 --randomOverlap=$nBalls --timeToRun=$time_to_run --algorithm=$alg)
             echo ""
           done
         done
@@ -88,7 +88,7 @@ if [[ "$runWeakScaling" == 'true' ]]; then
         for pn_els in "${sqrt_els_per_node[@]}"; do
           n=$(echo "(sqrt($pn_els*$pn_els*$nc))/1" | bc)
           nBalls=$(echo "($pn_msg*$nc)/1" | bc)
-          (set -x ./pingPongBallStencil -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run)
+          (set -x; ./pingPongStencil -nl $nc --N=$n --numDims=2 --randomOverlap=$nBalls --timeToRun=$time_to_run)
           echo ""
         done
       done
