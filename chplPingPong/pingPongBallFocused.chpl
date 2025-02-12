@@ -142,7 +142,7 @@ if corners {
   }
 } else if randomOverlap >= 0 {
   var rs = new randomStream(int);
-  for 0..<(N * N) {
+  for 0..<numBalls {
     const r = rs.next(0, N*N -1);
     const x = r % N;
     const y = r / N;
