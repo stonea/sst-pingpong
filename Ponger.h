@@ -4,13 +4,17 @@
 #include <sst/core/component.h>
 #include <sst/core/link.h>
 
+#ifdef ENABLE_SSTDBG
+#include <sst/dbg/SSTDebug.h>
+#endif
+
 class Ponger : public SST::Component {
   public:
     Ponger( SST::ComponentId_t id, SST::Params& params );
     ~Ponger();
 
-    void setup();
-    void finish();
+    void setup() override;
+    void finish() override;
 
     bool tick( SST::Cycle_t currentCycle );
 
@@ -46,12 +50,15 @@ class Ponger : public SST::Component {
       { "ballEncounters", "Times this ponger has encountered a ball", "balls", 1 }
     )
 
+#ifdef ENABLE_SSTDBG
+    void printStatus(SST::Output& out) override;
+#endif
+
   private:
     void handleNorthPort(SST::Event *ev);
     void handleSouthPort(SST::Event *ev);
     void handleWestPort(SST::Event *ev);
     void handleEastPort(SST::Event *ev);
-
 
     int64_t ballsHeadingNorth;
     int64_t ballsHeadingSouth;
@@ -62,6 +69,10 @@ class Ponger : public SST::Component {
     SST::Statistics::Statistic<int> *statBallEncounters;
 
     SST::Link *northPort, *southPort, *westPort, *eastPort;
+
+#ifdef ENABLE_SSTDBG
+    SSTDebug *dbg;
+#endif
 };
 
 std::vector<SST::Statistics::Statistic<int>*> portStats;
