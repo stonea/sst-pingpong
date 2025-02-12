@@ -1,60 +1,97 @@
 #!/usr/bin/env bash
 
-if [[ $# -eq 1 && "$1" == "clean" ]]; then
-    set -e -x
-    rm -f *.o pingpongballs pingpongballs_real ./tmp
-    exit
-fi
+# Note all experiments are conducted using the '--randomOverlap' approach for
+# ball placement.
+
+runStrongScaling=true         # set to 'true' to run strong scaling experiments
+runWeakScaling=true           # set to 'true' to run weak scaling experiments
+runBallFocusedApproach=true   # set to 'true' to run ball-focused approach
+runStencilBasedApproach=true  # set to 'true' to run stencil-focused approach
+
+nodecount=( 1 2 4 8 16 32)    # list of number of nodes to run experiments on 
+algs=( 0)  # how to conduct ball focused version. 0 = w/ outer, synchronizing,
+           # time-loop; 1 = w/ inner, non-synchronizing, time-loop
+time_to_run=1000  # how long to run each simulation (in simulated seconds)
+
+# Parameters to set for 'strong' scaling experiments; add to list to
+# conduct additional experiments:
+sqrt_els_per_node=( 128)    # sqrt of number of pongers on each node
+messages_per_node=( 512)    # number of balls to place on each node
+
+# Parameters to set for 'weak' scaling experiments; add to list to
+# conduct additional experiments:
+sqrt_els=( 1024)    # sqrt of number of pongers across all nodes
+num_balls=( 1024)   # total number of balls across all nodes
+
+# -----------------------------------------------------------------------------
+
+set -e
 
 (set -x; chpl --fast pingPongBallFocused.chpl)
-#(set -x; chpl --fast pingPongStencil.chpl)
+(set -x; chpl --fast pingPongStencil.chpl)
 
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 0)
-(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 250000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 50000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 75000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 100000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 125000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 150000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 175000000)
-#(set -x; ./pingPongBallFocused --N 1024 --edgeDelay 10 --timeToRun 100 --random 1024 --artificialWork 200000000)
-exit
+if [[ "$runStrongScaling" == 'true' ]]; then
+  echo '==== CONDUCTING STRONG SCALING EXPERIMENTS ===='
 
-nodecount=( 1 2 4 8 16 32)
-#algs=( 0 1 2)
-algs=( 0)
-sqrt_els_per_node=128
-messages_per_node=512
-#num_timesteps=300000000
-num_timesteps=300
-time_to_run=$(echo "($num_timesteps*50)/1" | bc)
+  if [[ "$runBallFocusedApproach" == 'true' ]]; then
+    echo '-- RUNNING "BALL FOCUSED" APPROACH --'
+    for alg in "${algs[@]}"; do
+      for nc in "${nodecount[@]}"; do
+        for pn_msg in "${num_balls[@]}"; do
+          for pn_els in "${sqrt_els[@]}"; do
+            (set -x; ./pingPongBallFocused -nl $nc --N=$pn_els --numDims=2 --randomOverlap=$pn_msg --timeToRun=$time_to_run --algorithm=$alg)
+            echo ""
+          done
+        done
+      done
+    done
+  fi
 
-#for alg in "${algs[@]}"; do
-#  for nc in "${nodecount[@]}"; do
-#    n=$(echo "(sqrt($sqrt_els_per_node*$sqrt_els_per_node*$nc))/1" | bc)
-#    nBalls=$(echo "($messages_per_node*$nc)/1" | bc)
-#    ./pingPongBallFocused -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run --algorithm=$alg
-#  done
-#
-#  echo ""
-#done
+  if [[ "$runStencilBasedApproach" == 'true' ]]; then
+    echo '-- NEXT RUNNING "STENCIL FOCUSED" APPROACH --'
+    for alg in "${algs[@]}"; do
+      for nc in "${nodecount[@]}"; do
+        for pn_msg in "${num_balls[@]}"; do
+          for pn_els in "${sqrt_els[@]}"; do
+            (set -x; ./pingPongStencil -nl $nc --N=$pn_els --numDims=2 --randomOverlap=$pn_msg --timeToRun=$time_to_run)
+            echo ""
+          done
+        done
+      done
+    done
+  fi
+fi
 
+if [[ "$runWeakScaling" == 'true' ]]; then
+  echo '==== CONDUCTING WEAK SCALING EXPERIMENTS ===='
 
-nodecount=( 1 2 4 8 16 32)
-sqrt_els_per_node=92681
-messages_per_node=512
-num_timesteps=10
-time_to_run=$(echo "($num_timesteps*50)/1" | bc)
+  if [[ "$runBallFocusedApproach" == 'true' ]]; then
+    echo '-- RUNNING "BALL FOCUSED" APPROACH --'
+    for alg in "${algs[@]}"; do
+      for nc in "${nodecount[@]}"; do
+        for pn_msg in "${messages_per_node[@]}"; do
+          for pn_els in "${sqrt_els_per_node[@]}"; do
+            n=$(echo "(sqrt($pn_els*$pn_els*$nc))/1" | bc)
+            nBalls=$(echo "($pn_msg*$nc)/1" | bc)
+            (set -x; ./pingPongBallFocused -nl $nc --N=$n --numDims=2 --randomOverlap=$nBalls --timeToRun=$time_to_run --algorithm=$alg)
+            echo ""
+          done
+        done
+      done
+    done
+  fi
 
-# weak scaling
-for nc in "${nodecount[@]}"; do
-  n=$(echo "(sqrt($sqrt_els_per_node*$sqrt_els_per_node*$nc))/1" | bc)
-  nBalls=$(echo "($messages_per_node*$nc)/1" | bc)
-  (set -x; ./pingPongStencil -nl $nc --N=$n --numDims=2 --numBalls=$nBalls --timeToRun=$time_to_run)
-done
-
-# strong scaling
-#for nc in "${nodecount[@]}"; do
-#  (set -x; ./pingPongStencil -nl $nc --N=1024 --numDims=2 --numBalls=128 --timeToRun=30000)
-#done
-
+  if [[ "$runStencilBasedApproach" == 'true' ]]; then
+    echo '-- NEXT RUNNING "STENCIL FOCUSED" APPROACH --'
+    for nc in "${nodecount[@]}"; do
+      for pn_msg in "${messages_per_node[@]}"; do
+        for pn_els in "${sqrt_els_per_node[@]}"; do
+          n=$(echo "(sqrt($pn_els*$pn_els*$nc))/1" | bc)
+          nBalls=$(echo "($pn_msg*$nc)/1" | bc)
+          (set -x; ./pingPongStencil -nl $nc --N=$n --numDims=2 --randomOverlap=$nBalls --timeToRun=$time_to_run)
+          echo ""
+        done
+      done
+    done
+  fi
+fi

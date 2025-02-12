@@ -1,0 +1,45 @@
+This directory contains two Chapel-based implementations of the "Ping Pong"
+benchmark written using two "alternative" algorithms from DES.  These are:
+
+- pingPongBallFocused.chpl -- which works by not allocating any storage for
+  the grid of pongers and instead stores the (x,y) locations of balls in a
+  distributed array.  
+- pingPongStencil.chpl -- which works by storing four block distributed arrays
+  indicating at each "ponger" location how many balls are headed north, south,
+  west, and east.
+
+The "ball focused" version can be passed an 'algorithm' configuration constant
+to specify whether we should have the timestep loop as a synchronizing outer
+loop or an asynchronous inner loop. Having it as an inner loop leads to better
+parallel scalability (as no synchronization is necessary between time steps)
+but may be less realistic since this is only possible because none of the
+"balls" interact with one another.  We would expect the performance of this
+version to be independent of the size of the grid but impacted by the number of
+balls in flight.
+
+The "stencil" version has a synchronizing outer time loop and can update all
+four distributed arrays in parallel.  We would expect the performance of this
+version to be independent of the number of balls in flight but impacted by the
+size of the grid.
+
+Both Chapel versions require significantly less memory than the SST-based
+version and perform much faster; however, the Chapel versions are specifically
+written for this "ping pong" example and SST is a more general framework.  The
+"ping pong" application has a number of characteristics that make it suitable
+for the algorithms studied in this directory If these characteristics and
+assumptions were changed than it may be less suitable.
+
+Some simplifying characteristics include that:
+
+- all edges in its component graph have the same weight.
+- all interactions are independent (for example, I don't have "balls" bounce
+  off of each other).
+- connectivity among components is completely regular (e.g. the components form
+  a perfect 2D grid).
+- the amount of "work" to update a component is minimal (we simply pass a
+  message along from one component to another).
+- all the components are the same and perform the exact same logic.
+
+To run experiments using these versions modify and execute the 'doit' script in
+this directory.  The script has various parameters at the top that can be
+modified to direct the script what to conduct.
