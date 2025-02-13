@@ -5,6 +5,10 @@
 #include <sst/core/link.h>
 #include <sst/core/rng/marsaglia.h>
 
+#ifdef ENABLE_SSTDBG
+#include <sst/dbg/SSTDebug.h>
+#endif
+
 class Simulator : public SST::Component {
   public:
     Simulator( SST::ComponentId_t id, SST::Params& params );
@@ -27,11 +31,21 @@ class Simulator : public SST::Component {
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-      { "timeToRun", "How long to run the simulation (in ps)", "100ps" },
+      { "timeToRun",      "How long to run the simulation (in sec)", "100s" },
+      { "verbose",        "Print verbose debugging output", "false" },
+      { "artificialWork", "Add an artificial delay to message processing", "0"}
     )
+
+#ifdef ENABLE_SSTDBG
+    void printStatus(SST::Output& out) override;
+#endif
 
   private:
     int64_t timeToRun;
+
+#ifdef ENABLE_SSTDBG
+    SSTDebug *dbg;
+#endif
 };
 
 #endif

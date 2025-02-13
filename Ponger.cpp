@@ -1,8 +1,7 @@
 #include <sst/core/sst_config.h>
 #include <sst/core/interfaces/stringEvent.h>
 #include "Ponger.h"
-
-bool verbose = true;
+#include "GlobalParams.h"
 
 using SST::Interfaces::StringEvent;
 
@@ -22,6 +21,13 @@ class BallEvent : public SST::Event {
     ImplementSerializable(BallEvent);
 };
 
+static double artificialWorkValue = 1.1;
+static double artificialWorkMultiplier = 1.23;
+static void conductArtificialWork(int64_t count) {
+  for(int64_t i = 0; i < count; i++) {
+    artificialWorkValue *= artificialWorkMultiplier;
+  }
+}
 
 Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
@@ -39,9 +45,17 @@ Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
 
   statBallEncounters = registerStatistic<int>("ballEncounters", "paddle_"+std::to_string(id));
   portStats.push_back(statBallEncounters);
+
+#ifdef ENABLE_SSTDBG
+  dbg = new SSTDebug(getName(),"./");
+#endif
 }
 
-Ponger::~Ponger() { }
+Ponger::~Ponger() {
+#ifdef ENABLE_SSTDBG
+  delete dbg;
+#endif
+}
 
 void Ponger::setup() {
   if(ballsHeadingNorth > 0) {
@@ -72,10 +86,12 @@ bool Ponger::tick( SST::Cycle_t currentCycle ) {
 }
 
 void Ponger::handleNorthPort(SST::Event *ev) {
-  if(verbose) {
+  if(gVerbose) {
     std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
               << "vvvvvv " << getName() << std::endl;
   }
+
+  conductArtificialWork(gArtificialWork);
 
   int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
   if(isPortConnected("southPort")) {
@@ -86,10 +102,12 @@ void Ponger::handleNorthPort(SST::Event *ev) {
 }
 
 void Ponger::handleSouthPort(SST::Event *ev) {
-  if(verbose) {
+  if(gVerbose) {
     std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
               << "^^^^^^ " << getName() << std::endl;
   }
+
+  conductArtificialWork(gArtificialWork);
 
   int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
   if(isPortConnected("northPort")) {
@@ -100,10 +118,12 @@ void Ponger::handleSouthPort(SST::Event *ev) {
 }
 
 void Ponger::handleWestPort(SST::Event *ev) {
-  if(verbose) {
+  if(gVerbose) {
     std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
               << " -----> " << getName() << std::endl;
   }
+
+  conductArtificialWork(gArtificialWork);
 
   int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
   if(isPortConnected("eastPort")) {
@@ -114,10 +134,12 @@ void Ponger::handleWestPort(SST::Event *ev) {
 }
 
 void Ponger::handleEastPort(SST::Event *ev) {
-  if(verbose) {
+  if(gVerbose) {
     std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
               << getName() << " <-----" << std::endl;
   }
+
+  conductArtificialWork(gArtificialWork);
 
   int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
   if(isPortConnected("westPort")) {
@@ -126,3 +148,16 @@ void Ponger::handleEastPort(SST::Event *ev) {
     eastPort->send(new BallEvent(incomingBalls));
   }
 }
+
+#ifdef ENABLE_SSTDBG
+void Ponger::printStatus(SST::Output& out){
+  if(!dbg->dump(getCurrentSimCycle(),
+     DARG(ballsHeadingNorth),
+     DARG(ballsHeadingSouth),
+     DARG(ballsHeadingWest),
+     DARG(ballsHeadingEast)))
+  {
+    out.output("Debug dump failed!\n");
+  }
+}
+#endif
