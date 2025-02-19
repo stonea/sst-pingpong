@@ -17,14 +17,13 @@ else
 fi
 
 prefix=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}
-tmpOut=$prefix.out
-jsonOut=$prefix.json
+tmpOut=${prefix}_json.out
+jsonIn=$prefix.json
 touch $tmpOut
  srun -N $nodeCount --cpus-per-task=$threadCount  --ntasks-per-node=$tasksPerNode \
-  sst --print-timing-info=true -n $threadCount --output-json=$jsonOut --parallel-output=true ../pingpong.py -- \
-  --numDims 2 --N $sideLength $commFlags --timeToRun $timeStepCount > $tmpOut
+  sst --print-timing-info=true -n $threadCount  --parallel-load $jsonIn -- \
+  > $tmpOut
  grep "Build time:" $tmpOut | awk '{print $3}'
  grep "Run loop time:" $tmpOut | awk '{print $4}'
  grep "Max Resident Set Size:" $tmpOut | awk -F': *' '{print $2}'
  grep "Approx. Global Max RSS Size:" $tmpOut | awk -F': *' '{print $2}'
-
