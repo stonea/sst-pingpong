@@ -78,13 +78,15 @@ record link {
   }
 }
 
-
-var messageLocations: [1..elementCount] bool;
-messageLocations[1..messageCount] = true;
+writeln("Selecting message locations...");
+var messageLocations: [0..<elementCount] bool;
+messageLocations[0..<messageCount] = true;
 shuffle(messageLocations);
 
-var pongers: [1..elementCount] ponger;
-for elementNum in 1..elementCount {
+writeln("Creating pongers...");
+stdout.flush();
+var pongers: [0..<elementCount] ponger;
+forall elementNum in 0..<elementCount {
   var messageInputs: [0..<4] int = 0;
   if messageLocations[elementNum] {
     messageInputs[1] = 1;
@@ -96,32 +98,27 @@ for elementNum in 1..elementCount {
     messageInputs[0], messageInputs[1], messageInputs[2], messageInputs[3]);
 }
 
-for p in pongers do writeln(p.toString());
 
-
-var grid: [1..sideLength, 1..sideLength] int;
-for (i,j) in grid.domain do grid[i,j] = i*sideLength + j - sideLength;
-
-writeln(grid);
+writeln("Creating links...");
+stdout.flush();
+var grid: [0..<sideLength, 0..<sideLength] int;
+for (i,j) in grid.domain do grid[i,j] = i*sideLength + j;
 
 var linkNum = 0;
 var links: list(link);
 for (i,j) in grid.domain {
-  if i % sideLength != 0 {
-    writeln("north south for value ", grid(i,j));
+  if (i+1) % sideLength != 0 {
     var l = new link(linkNum, grid(i,j), grid(i+1,j), "south", "north");
     linkNum += 1;
     links.pushBack(l);
   } 
-  if j % sideLength != 0 {
-    writeln("east west for value ", grid(i,j));
+  if (j+1) % sideLength != 0 {
     var l = new link(linkNum, grid(i,j), grid(i,j+1), "east", "west");
     linkNum += 1;
     links.pushBack(l);
   }
 
 }
-for link in links do writeln(link.toString());
 
 proc writeRankJson(rankNum) {
   var elementStrings: set(string);
@@ -194,6 +191,8 @@ proc writeRankJson(rankNum) {
   f.write(fullString);
   f.close();
 }
-for i in 0..<rankCount {
+writeln("Writing json output..");
+stdout.flush();
+forall i in 0..<rankCount {
   writeRankJson(i);
 }
