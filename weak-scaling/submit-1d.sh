@@ -7,7 +7,7 @@ set -x
 # Check if there are exactly four arguments
 if [ "$#" -ne 6 ]; then
     echo "Error: Six arguments are required."
-    echo "Usage: $0 <nodeCounts> <tasksPerNodeCounts> <threadCounts> <sideLengths>  <messageCounts (or 'wavefront' or 'corners')> <timeStepCounts> "
+    echo "Usage: $0 <nodeCounts> <tasksPerNodeCounts> <threadCounts> <componentCounts>  <messageCounts (or 'wavefront' or 'corners')> <timeStepCounts> "
     exit 1
 fi
 
@@ -15,7 +15,7 @@ fi
 nodeCounts=$1
 tasksPerNodeCounts=$2
 threadCounts=$3
-sideLengths=$4
+componentCounts=$4
 messageCounts=$5
 timeStepCounts=$6
 
@@ -24,7 +24,7 @@ timeStepCounts=$6
 echo "nodeCounts: $nodeCounts"
 echo "tasksPerNodeCounts: $tasksPerNodeCounts"
 echo "threadCounts: $threadCounts"
-echo "sideLengths: $sideLengths"
+echo "componentCounts: $componentCounts"
 echo "messageCounts: $messageCounts"
 echo "timeStepCounts: $timeStepCounts"
 
@@ -37,11 +37,11 @@ popd
 for nodeCount in $nodeCounts; do
   for tasksPerNode in $tasksPerNodeCounts; do
     for threadCount in $threadCounts; do
-      for sideLength in $sideLengths; do
+      for componentCount in $componentCounts; do
         for messageCount in $messageCounts; do
           for timeStepCount in $timeStepCounts; do
-            outfile=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}.time
-            sbatch -N $nodeCount --cpus-per-task $threadCount --ntasks-per-node $tasksPerNode -o $outfile scaling.sh $nodeCount $tasksPerNode $threadCount $sideLength $messageCount $timeStepCount
+            outfile=${nodeCount}_${tasksPerNode}_${threadCount}_${componentCount}_${messageCount}_${timeStepCount}_1d.time
+            sbatch -N $nodeCount --cpus-per-task $threadCount --ntasks-per-node $tasksPerNode -o $outfile scaling-1d.sh $nodeCount $tasksPerNode $threadCount $componentCount $messageCount $timeStepCount
           done
         done
       done

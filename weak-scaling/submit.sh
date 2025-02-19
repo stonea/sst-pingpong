@@ -6,8 +6,8 @@ set -e
 set -x
 # Check if there are exactly four arguments
 if [ "$#" -ne 6 ]; then
-    echo "Error: Four arguments are required."
-    echo "Usage: $0 <nodeCounts> <tasksPerNodeCounts> <threadCounts> <sideLengths> <messageCounts> <timeStepCounts>"
+    echo "Error: Six arguments are required."
+    echo "Usage: $0 <nodeCounts> <tasksPerNodeCounts> <threadCounts> <sideLengths>  <messageCounts (or 'wavefront' or 'corners')> <timeStepCounts> "
     exit 1
 fi
 
@@ -19,6 +19,7 @@ sideLengths=$4
 messageCounts=$5
 timeStepCounts=$6
 
+
 # Print the values (optional)
 echo "nodeCounts: $nodeCounts"
 echo "tasksPerNodeCounts: $tasksPerNodeCounts"
@@ -26,6 +27,8 @@ echo "threadCounts: $threadCounts"
 echo "sideLengths: $sideLengths"
 echo "messageCounts: $messageCounts"
 echo "timeStepCounts: $timeStepCounts"
+
+
 
 echo "Making..."
 pushd ..

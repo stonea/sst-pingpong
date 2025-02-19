@@ -1,19 +1,28 @@
 #!/bin/bash
 #
 #
+set -e
+
 nodeCount=$1
 tasksPerNode=$2
 threadCount=$3
 sideLength=$4
-ballCount=$5
+messageCount=$5
 timeStepCount=$6
 
-tmpOut=`mktemp`
+if [[ "$messageCount" = "wavefront" || "$messageCount" = "corners" ]]; then
+  commFlags="--$messageCount"
+else
+  commFlags="--random $messageCount"
+fi
+
+tmpOut=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}.out
+touch $tmpOut
  srun -N $nodeCount --cpus-per-task=$threadCount  --ntasks-per-node=$tasksPerNode \
   sst --print-timing-info=true -n $threadCount ../pingpong.py -- \
-  --numDims 2 --random --N $sideLength --numBalls $ballCount --timeToRun $timeStepCount > $tmpOut
+  --numDims 2 --N $sideLength $commFlags --timeToRun $timeStepCount > $tmpOut
  grep "Build time:" $tmpOut | awk '{print $3}'
  grep "Run loop time:" $tmpOut | awk '{print $4}'
-rm $tmpOut
-
+ grep "Max Resident Set Size:" $tmpOut | awk -F': *' '{print $2}'
+ grep "Approx. Global Max RSS Size:" $tmpOut | awk -F': *' '{print $2}'
 

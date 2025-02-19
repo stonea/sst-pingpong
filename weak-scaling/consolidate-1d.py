@@ -8,14 +8,11 @@ data = []
 
 
 for filename in os.listdir('.'):
-    if filename.endswith('.time'):
+    if filename.endswith('_1d.time'):
         # Try to split and remove the extension
         try:
-            base_name = filename[:-5]
-            if base_name.endswith('1d'):
-                continue
+            base_name = filename[:-8]
             node,task,thread,element,message,step = map(int, base_name.split('_'))
-            
             with open(filename, 'r') as file:
                 values = [line.strip() for line in file if line.strip()]
                 build_time = values[0]
@@ -26,7 +23,7 @@ for filename in os.listdir('.'):
                 'Node Count' : node,
                 'Tasks Per Node' : task,
                 'Thread Count' : thread,
-                'Side Length' : element,
+                'Component Count' : element,
                 'Message Count' : message,
                 'Step Count' : step,
                 'Build Time' : build_time,
