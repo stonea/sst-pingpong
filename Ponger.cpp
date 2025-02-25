@@ -99,6 +99,8 @@ void Ponger::handleNorthPort(SST::Event *ev) {
   } else if(isPortConnected("northPort")) {
     northPort->send(new BallEvent(incomingBalls));
   }
+
+  delete ev;
 }
 
 void Ponger::handleSouthPort(SST::Event *ev) {
@@ -115,6 +117,8 @@ void Ponger::handleSouthPort(SST::Event *ev) {
   } else if(isPortConnected("southPort")) {
     southPort->send(new BallEvent(incomingBalls));
   }
+
+  delete ev;
 }
 
 void Ponger::handleWestPort(SST::Event *ev) {
@@ -131,6 +135,8 @@ void Ponger::handleWestPort(SST::Event *ev) {
   } else if(isPortConnected("westPort")) {
     westPort->send(new BallEvent(incomingBalls));
   }
+
+  delete ev;
 }
 
 void Ponger::handleEastPort(SST::Event *ev) {
@@ -147,6 +153,8 @@ void Ponger::handleEastPort(SST::Event *ev) {
   } else if(isPortConnected("eastPort")) {
     eastPort->send(new BallEvent(incomingBalls));
   }
+
+  delete ev;
 }
 
 #ifdef ENABLE_SSTDBG
