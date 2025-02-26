@@ -60,7 +60,7 @@ if args.corners:
       ballsHeadingNorthAt[SW_PONGER] = 1
       ballsHeadingNorthAt[SE_PONGER] = 1
 elif args.random != -1:
-  sample = random.sample(range(args.N * args.N), args.random)
+  sample = random.sample(range(args.N * args.N), min(args.N *args.N,args.random))
   for r in sample:
     direction = random.randint(0,3)
     if direction   == 0: ballsHeadingNorthAt[r] = 1
