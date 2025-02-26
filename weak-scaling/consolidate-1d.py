@@ -16,8 +16,8 @@ for filename in os.listdir('.'):
             print(pieces)
 
             node,task,thread,element,message,step = pieces[0:6]
-            if len(pieces) == 8:
-                input_method = pieces[7]
+            if len(pieces) == 7:
+                input_method = pieces[6]
             else:
                 input_method='python'
 
