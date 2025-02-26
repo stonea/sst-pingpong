@@ -12,7 +12,15 @@ for filename in os.listdir('.'):
         # Try to split and remove the extension
         try:
             base_name = filename[:-8]
-            node,task,thread,element,message,step = map(int, base_name.split('_'))
+            pieces = base_name.split('_')
+            print(pieces)
+
+            node,task,thread,element,message,step = pieces[0:6]
+            if len(pieces) == 8:
+                input_method = pieces[7]
+            else:
+                input_method='python'
+
             with open(filename, 'r') as file:
                 values = [line.strip() for line in file if line.strip()]
                 build_time = values[0]
@@ -29,7 +37,8 @@ for filename in os.listdir('.'):
                 'Build Time' : build_time,
                 'Run Time' : run_time,
                 'Local Memory Usage' : local_memory_usage,
-                'Global Memory Usage' : global_memory_usage
+                'Global Memory Usage' : global_memory_usage,
+                'Input Method' : input_method
             })
         except ValueError:
             print(f'Skipping invalid file: {filename}')

@@ -16,10 +16,12 @@ else
   commFlags="--random $messageCount"
 fi
 
-tmpOut=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}_1d.out
+prefix=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}
+tmpOut=${prefix}_1d.out
+jsonOut=${prefix}_1d.json
 touch $tmpOut
  srun -N $nodeCount --cpus-per-task=$threadCount  --ntasks-per-node=$tasksPerNode \
-  sst --print-timing-info=true -n $threadCount ../pingpong.py -- \
+  sst --print-timing-info=true -n $threadCount --output-json=$jsonOut --parallel-output=true ../pingpong.py -- \
   --numDims 1 --N $sideLength $commFlags --timeToRun $timeStepCount > $tmpOut
  grep "Build time:" $tmpOut | awk '{print $3}'
  grep "Run loop time:" $tmpOut | awk '{print $4}'

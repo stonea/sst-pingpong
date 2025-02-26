@@ -17,8 +17,8 @@ else
 fi
 
 prefix=${nodeCount}_${tasksPerNode}_${threadCount}_${sideLength}_${messageCount}_${timeStepCount}
-tmpOut=$prefix_json.out
-jsonIn=$prefix.json
+tmpOut=${prefix}_json_1d.out
+jsonIn=${prefix}_1d.json
 touch $tmpOut
  srun -N $nodeCount --cpus-per-task=$threadCount  --ntasks-per-node=$tasksPerNode \
   sst --print-timing-info=true -n $threadCount  --parallel-load $jsonIn -- \
@@ -27,3 +27,4 @@ touch $tmpOut
  grep "Run loop time:" $tmpOut | awk '{print $4}'
  grep "Max Resident Set Size:" $tmpOut | awk -F': *' '{print $2}'
  grep "Approx. Global Max RSS Size:" $tmpOut | awk -F': *' '{print $2}'
+
