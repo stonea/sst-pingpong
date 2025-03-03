@@ -8,7 +8,7 @@ use Time;
 config const rankCount=1;
 config const threadsPerRank=1;
 config const sideLength=4;
-config const timeToRun=1000;
+config const timeToRun=200;
 config const outputPrefix="configuration";
 config const edgeDelay=50;
 config const verbose = false;
@@ -196,14 +196,21 @@ var links = createLinks();
 s.stop();
 writeln("Creating links: ", s.elapsed(), " seconds");
 
-proc writeRankJson(rankNum, pongers, links) {
+proc writeRankJson(rankNum) {
+  var s: stopwatch;
   var elementStrings: set(string);
   var linkStrings: set(string);
+
+  s.restart();
   for p in pongers {
     if p.rank == rankNum {
       elementStrings.add(p.toString());
     }
   }
+  s.stop();
+  writeln("Adding pongers: ", s.elapsed(), " seconds");
+
+  s.restart();
   for l in links {
     if pongers[l.pong1].rank == rankNum || 
        pongers[l.pong2].rank == rankNum {
@@ -216,6 +223,8 @@ proc writeRankJson(rankNum, pongers, links) {
       }
     }
   }
+  s.stop();
+  writeln("Adding links: ", s.elapsed(), " seconds");
   //Add the sim object just to the first rank
   if rankNum == 0 {
     var simString = 
@@ -296,7 +305,7 @@ proc writeRankJson(rankNum, pongers, links) {
 
 s.restart();
 forall i in 0..<rankCount {
-  writeRankJson(i, pongers, links);
+  writeRankJson(i);
 }
 s.stop();
 writeln("Writing JSON: ", s.elapsed(), " seconds");

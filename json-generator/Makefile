@@ -1,5 +1,5 @@
 jsonGenerator: jsonGenerator.chpl
-	chpl jsonGenerator.chpl
+	chpl --fast jsonGenerator.chpl
 
 .PHONY: clean
 clean:
