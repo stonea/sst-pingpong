@@ -12,6 +12,7 @@ config const timeToRun=1000;
 config const outputPrefix="configuration";
 config const edgeDelay=50;
 config const verbose = false;
+config const printTimingInfo = true;
 
 config const corners = false;
 config const random = -1;
@@ -38,29 +39,43 @@ record ponger {
   var id: int, rank: int, thread: int, 
       north: int, south: int, east: int, west: int;
 
-  proc toString() {
+  proc toString(includeParams=true) {
     var fullString = """
-{ 
-  "name": "pong_PONGERID",
-  "type": "pingpong.ponger",
-  "params": {
-    "ballsHeadingNorth": "NORTH",
-    "ballsHeadingSouth": "SOUTH",
-    "ballsHeadingWest": "WEST",
-    "ballsHeadingEast": "EAST"
-  },
-  "partition": {
-    "rank": RANK,
-    "thread": THREAD
-  }
-}""";
-    var formatted = fullString.replace("PONGERID", id:string);
+    { 
+      "name": "pong_PONGERID",
+      "type": "pingpong.ponger"
+      PARAMS
+      PARTITION_INFO
+    }""";
+    var params=""",
+    "params": {
+      "ballsHeadingNorth": "NORTH",
+      "ballsHeadingSouth": "SOUTH",
+      "ballsHeadingWest": "WEST",
+      "ballsHeadingEast": "EAST"
+    }""";
+    var partitionInfo = """,
+    "partition": {
+      "rank": RANK,
+      "thread": THREAD
+    }""";
+    
+    if includeParams {
+      fullString = fullString.replace("PARAMS", params);
+    } else {
+      fullString = fullString.replace("PARAMS", "");
+    }
+    if rankCount == 1 {
+      fullString = fullString.replace("PARTITION_INFO", "");
+    } else {
+      fullString = fullString.replace("PARTITION_INFO", partitionInfo);
+    }
     var pairs = [("NORTH", north), ("SOUTH", south), ("WEST", west), 
                 ("EAST", east), ("RANK", rank), ("THREAD", thread),
                 ("PONGERID", id)];
     for (key, value) in pairs do
-      formatted = formatted.replace(key, value:string);
-    return formatted;
+      fullString = fullString.replace(key, value:string);
+    return fullString;
   }
 }
 
@@ -68,20 +83,22 @@ record link {
   var id: int, pong1: int, pong2: int, leftPort: string, rightPort: string;
 
   proc toString() {
-      var fullString=
-"""{
-  "name": "linkLINKID",
-  "left": {
-    "component": "pong_PONG1",
-    "port": "LEFTPORTPort",
-    "latency": "EDGEDELAYns"
-  },
-  "right": {
-    "component": "pong_PONG2",
-    "port": "RIGHTPORTPort",
-    "latency": "EDGEDELAYns"
-  }
-}""";
+    var fullString=
+    """{
+      "name": "linkLINKID",
+      "left": {
+        "component": "pong_PONG1",
+        "port": "LEFTPORTPort",
+        "latency": "EDGEDELAYs"
+        
+      },
+      "right": {
+        "component": "pong_PONG2",
+        "port": "RIGHTPORTPort",
+        "latency": "EDGEDELAYs"
+      }
+    }""";
+
     var pairs = [("LINKID", id:string), ("PONG1", pong1:string),
                 ("PONG2", pong2:string), ("LEFTPORT", leftPort:string),
                 ("RIGHTPORT", rightPort:string), 
@@ -115,7 +132,7 @@ proc createPongers() {
   if randomOverlap != -1 {
     var stream = new randomStream(int);
     for i in 1..randomOverlap {
-      var idx = stream.next(0,elementCount);
+      var idx = stream.next(0,elementCount-1);
       var direction = stream.next(1,4);
       if direction == 1 then pongers[idx].north = 1;
       if direction == 2 then pongers[idx].east = 1;
@@ -191,8 +208,12 @@ proc writeRankJson(rankNum, pongers, links) {
     if pongers[l.pong1].rank == rankNum || 
        pongers[l.pong2].rank == rankNum {
       linkStrings.add(l.toString());
-      elementStrings.add(pongers[l.pong1].toString());
-      elementStrings.add(pongers[l.pong2].toString());
+      if pongers[l.pong1].rank != rankNum {
+        elementStrings.add(pongers[l.pong1].toString(includeParams=false));
+      } 
+      if pongers[l.pong2].rank != rankNum {
+        elementStrings.add(pongers[l.pong2].toString(includeParams=false));
+      }
     }
   }
   //Add the sim object just to the first rank
@@ -203,34 +224,49 @@ proc writeRankJson(rankNum, pongers, links) {
   "type": "pingpong.simulator",
   "params": {
     "timeToRun": "TIMETORUN",
-    "verbose": "False",
+    "verbose": "VERBOSE",
     "artificialWork": "0"
-  },
+  }""";
+    if rankCount == 1 {
+      simString = simString + "}";
+    } else {
+      simString = simString + """,
   "partition": {
     "rank": 0,
     "thread": 0
   }
-}""";
+  """ + "}";
+    }
+
     simString = simString.replace("TIMETORUN", timeToRun:string);
+    
+    simString = simString.replace("VERBOSE", if verbose then "True" else "False");
     elementStrings.add(simString);
   }
 
   var programOptions = """
 "program_options": {
-  "verbose": "VERBOSE",
+  "verbose": "0",
   "stop-at": "0 ns",
-  "print-timing-info": "true",
+  "print-timing-info": "PRINTTIMINGINFO",
   "heartbeat-sim-period": "",
   "heartbeat-wall-period": "0",
   "timebase": "1 ps",
-  "partitioner": "sst.linear",
+  "partitioner": "PARTITIONER",
   "timeVortex": "sst.timevortex.priority_queue",
   "interthread-links": "false",
   "output-prefix-core": "@x SST Core: ",
   "checkpoint-sim-period": "",
   "checkpoint-wall-period": "0"
 }""";
-  programOptions = programOptions.replace("VERBOSE", (verbose:int):string);
+  var partitioner: string;
+  if rankCount == 1 && threadsPerRank == 1 {
+    partitioner = "sst.single";
+  } else {
+    partitioner = "sst.linear";
+  }
+  programOptions = programOptions.replace("PARTITIONER", partitioner);
+  programOptions = programOptions.replace("PRINTTIMINGINFO", (printTimingInfo:int):string);
 
 
   var compArray = elementStrings.toArray();
@@ -245,8 +281,13 @@ proc writeRankJson(rankNum, pongers, links) {
   var fullString = "{" + 
     ",\n".join(programOptions, componentString, linkString) + "\n}";
 
-  var filename = outputPrefix+rankNum:string + ".json";
 
+  var filename: string;
+  if rankCount == 1 {
+    filename = outputPrefix + ".json";
+  } else {
+    filename = outputPrefix + rankNum:string + ".json";
+  }
   var f = openWriter(filename);
   f.write(fullString);
   f.close();
