@@ -3,6 +3,7 @@ use Sort;
 use Set;
 use List;
 use Random;
+use Time;
 
 config const rankCount=1;
 config const threadsPerRank=1;
@@ -24,7 +25,10 @@ proc verifyConfigOptions() {
     halt("Must specify one of --corners, --random, --randomOverlap, or --wavefront");
   }
 }
+
 verifyConfigOptions();
+
+var s: stopwatch;
 
 var elementCount = sideLength * sideLength;
 var elementsPerRank = elementCount / rankCount;
@@ -59,10 +63,6 @@ record ponger {
     return formatted;
   }
 }
-proc pongerString(pongerId, rank, thread, north, south, east, west) {
-  var p = new ponger(pongerId, rank, thread, north, south, east, west);
-  return p.toString();
-}
 
 record link {
   var id: int, pong1: int, pong2: int, leftPort: string, rightPort: string;
@@ -74,17 +74,18 @@ record link {
   "left": {
     "component": "pong_PONG1",
     "port": "LEFTPORTPort",
-    "latency": "50s"
+    "latency": "EDGEDELAYns"
   },
   "right": {
     "component": "pong_PONG2",
     "port": "RIGHTPORTPort",
-    "latency": "50s"
+    "latency": "EDGEDELAYns"
   }
 }""";
     var pairs = [("LINKID", id:string), ("PONG1", pong1:string),
                 ("PONG2", pong2:string), ("LEFTPORT", leftPort:string),
-                ("RIGHTPORT", rightPort:string)];
+                ("RIGHTPORT", rightPort:string), 
+                ("EDGEDELAY", edgeDelay:string)];
     var formatted = fullString;
     for (key, value) in pairs do
       formatted = formatted.replace(key, value);
@@ -92,14 +93,11 @@ record link {
   }
 }
 
-
-
-
 proc createPongers() {
   var pongers: [0..<elementCount] ponger;
   forall elementNum in 0..<elementCount {
     var rankNum = elementNum / elementsPerRank;
-    var threadNum = (elementNum % rankCount) / elementsPerThread;
+    var threadNum = (elementNum % elementsPerRank) / elementsPerThread;
     pongers[elementNum] = new ponger(elementNum, rankNum, threadNum, 0,0,0,0);
   }
   if random != -1 {
@@ -149,8 +147,11 @@ proc createPongers() {
   }
   return pongers;
 }
-var pongers: [0..<elementCount] ponger = createPongers();
 
+s.restart();
+var pongers: [0..<elementCount] ponger = createPongers();
+s.stop();
+writeln("Creating pongers: ", s.elapsed(), " seconds");
 
 proc createLinks() {
   var grid: [0..<sideLength, 0..<sideLength] int;
@@ -172,10 +173,13 @@ proc createLinks() {
   }
   return links;
 }
+
+s.restart();
 var links = createLinks();
+s.stop();
+writeln("Creating links: ", s.elapsed(), " seconds");
 
-
-proc writeRankJson(rankNum) {
+proc writeRankJson(rankNum, pongers, links) {
   var elementStrings: set(string);
   var linkStrings: set(string);
   for p in pongers {
@@ -248,6 +252,10 @@ proc writeRankJson(rankNum) {
   f.close();
 }
 
+
+s.restart();
 forall i in 0..<rankCount {
-  writeRankJson(i);
+  writeRankJson(i, pongers, links);
 }
+s.stop();
+writeln("Writing JSON: ", s.elapsed(), " seconds");
