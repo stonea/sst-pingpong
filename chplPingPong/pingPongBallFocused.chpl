@@ -55,10 +55,17 @@ proc addBall(x : int, y : int, d : Direction) {
   nBallsSet += 1;
 }
 
-var artificialWorkValue = 1.1;
-var artificialWorkMultiplier = 1.23;
-proc conductArtificialWork(count : int) {
-  for 0..<count do artificialWorkValue *= artificialWorkMultiplier;
+extern {
+  #include <stdint.h>
+
+  static double conductArtificialWork(int64_t count) {
+    static const double artificialWorkMultiplier = 1.23;
+    volatile double artificialWorkValue = 1.1;
+    for(int64_t i = 0; i < count; i++) {
+      artificialWorkValue *= artificialWorkMultiplier;
+    }
+    return artificialWorkValue;
+  }
 }
 
 proc runSim() {
@@ -99,8 +106,9 @@ proc runLessNaiveSim() {
 }
 
 proc runQuestionableSim() {
-  coforall loc in Locales do on loc do local {
+  coforall loc in Locales do on loc {
     ref local_balls = balls.localSlice(balls.localSubdomain());
+
     forall b in local_balls {
       for i in 0..<timeToRun by edgeDelay {
         conductArtificialWork(artificialWork);
