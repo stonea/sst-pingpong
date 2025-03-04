@@ -31,6 +31,20 @@ else if wavefront then numBalls = N * 4;
 
 // ----------------------------------------------------------------------------
 
+extern {
+  #include <stdint.h>
+
+  static double conductArtificialWork(int64_t count) {
+    static const double artificialWorkMultiplier = 1.23;
+    volatile double artificialWorkValue = 1.1;
+    for(int64_t i = 0; i < count; i++) {
+      artificialWorkValue *= artificialWorkMultiplier;
+    }
+    return artificialWorkValue;
+  }
+}
+
+
 record BallStatus {
   var ballsN, ballsS, ballsW, ballsE : int;
 }
@@ -134,6 +148,9 @@ proc runSim() {
         nextBoard[x,y].ballsW += nextBoard[x,y].ballsE;
         nextBoard[x,y].ballsE = 0;
       }
+
+      for 0..<(board[x,y].ballsN + board[x,y].ballsS + board[x,y].ballsW + board[x,y].ballsE) do
+        conductArtificialWork(artificialWork);
     }
     nextBoard.updateFluff();
   }
