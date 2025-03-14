@@ -32,7 +32,7 @@ make -j8
 make install
 ```
 
-Next, we'll do the same for `sst-element`. From the `sst-element` base directory:
+Next, we'll do the same for `sst-elements`. From the `sst-elements` base directory:
 ```
 ./configure --prefix=`pwd`/install --with-sst-core=$HOME/mysst/sst-core/install
 make -j8
@@ -50,3 +50,12 @@ make
 Now you can use the `./submit.sh` script to run the simulation, gather profiling information, gather program structure information, and attribute program execution time to parts of the program. The syntax is the same as the strong and weak scaling evaluations. 
 
 The `./submit.sh` script will generate `database_*` directories. You can use `hpcviewer` to investigate the performance of your simulations.
+
+Weak scaling evaluation:
+```
+./submit.sh 1 1 1 512 2621 100000
+./submit.sh 4 1 1 1024 10485 100000
+./submit.sh 16 1 1 2048 41943 100000
+./submit.sh 64 1 1 4096 167772 100000
+./submit.sh 256 1 1 8192 671088 100000
+```

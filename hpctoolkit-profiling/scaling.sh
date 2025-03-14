@@ -16,7 +16,7 @@ databaseDir=database_$suffix
 
 srun -N $nodeCount --cpus-per-task=$threadCount  --ntasks-per-node=$tasksPerNode \
   hpcrun -o $measurementsDir -- sst -n $threadCount ../pingpong.py -- \
-  --numDims 2 --random --N $sideLength --numBalls $ballCount --timeToRun $timeStepCount
+  --numDims 2 --N $sideLength --random $ballCount --timeToRun $timeStepCount
 
 hpcstruct $measurementsDir
 hpcprof -o $databaseDir $measurementsDir
