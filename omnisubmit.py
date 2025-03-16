@@ -1,4 +1,7 @@
+import math
 import argparse
+import itertools
+import subprocess
 
 def int_list(value):
     try:
@@ -8,7 +11,7 @@ def int_list(value):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Submit Slurm jobs to evaluate SST.")
 
-    # Required lists of integers
+    # Required scale arguments
     parser.add_argument(
         "node_counts", 
         type=int_list, 
@@ -28,21 +31,27 @@ def parse_arguments():
     # Problem size arguments (required)
     parser.add_argument(
         "--dimensions", 
-        type=int, 
+        type=int_list,
         required=True, 
-        help="Number of dimensions for the problem (e.g., '2')."
+        help="Number(s) of dimensions to use (1 or 2 or '1 2' for both)."
     )
     parser.add_argument(
         "--side-length", "--side-lengths",
         type=int_list, 
-        nargs='+', 
-        required=True, 
         dest="side_lengths",
         help="List of side lengths of the grid (e.g., '128 256')."
     )
 
+    parser.add_argument(
+        "--component-counts", "--component-count",
+        type=int_list,
+        dest="component_counts",
+        default="",
+        help="List of component counts to use for the simulation. Be careful to use square numbers when running 2D simulations."
+        )
+
     # Communication pattern arguments
-    pattern_group = parser.add_mutually_exclusive_group(required=True)
+    pattern_group = parser.add_argument_group("Communication Options")
     pattern_group.add_argument(
         "--corners",
         action="store_true",
@@ -55,17 +64,28 @@ def parse_arguments():
     )
     pattern_group.add_argument(
         "--random",
-        type=int,
-        metavar="COUNT",
+        type=int_list,
+        metavar="COUNT(S)",
         help="Use the random communication pattern with a specified count."
     )
     pattern_group.add_argument(
-        "--random-overlap",
-        type=int,
-        metavar="COUNT",
+        "--random-overlap", "--randomOverlap",
+        dest="random_overlap",
+        type=int_list,
+        metavar="COUNT(S)",
         help="Use the randomOverlap communication pattern with a specified count."
     )
 
+    # Timestep count argument
+    parser.add_argument(
+        "--timestep-count", "--timestep-counts",
+        dest="timestep_counts",
+        type=int_list,
+        help="List of timestep counts to use (e.g., '100 200').",
+        default="1000"
+    )
+
+    # Input method argument
     def input_type_list(value):
         valid_inputs = ["python", "parallelPython", "json"]
         try:
@@ -76,7 +96,6 @@ def parse_arguments():
             return values
         except ValueError:
             raise argparse.ArgumentTypeError(f"Invalid list of strings: '{value}'")
-    # Input method argument
     parser.add_argument(
         "--input-method",
         type=input_type_list,
@@ -84,15 +103,37 @@ def parse_arguments():
         help="Input method to use (options: 'python', 'parallelPython', 'json')."
     )
 
-    return parser.parse_args()
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose simulation output."
+    )
 
-if __name__ == "__main__":
-    args = parse_arguments()
+    parser.add_argument(
+        "--hpctoolkit",
+        action="store_true",
+        help="Runs simulations with hpctoolkit"
+    )
+
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="Dry run (do not submit jobs)."
+    )
+    args = parser.parse_args()
+
+    if not (args.side_lengths or args.component_count):
+        parser.error("At least one of --side-length or --component-count must be provided.")
+
+    return args
+
+def print_args(args):
     print(f"Node counts: {args.node_counts}")
     print(f"Ranks per node: {args.ranks_per_node}")
     print(f"Threads per rank: {args.threads_per_rank}")
     print(f"Dimensions: {args.dimensions}")
     print(f"Side lengths: {args.side_lengths}")
+    print(f"Component counts: {args.component_counts}")
     if args.corners:
         print("Using corners communication pattern")
     if args.wavefront:
@@ -102,3 +143,83 @@ if __name__ == "__main__":
     if args.random_overlap is not None:
         print(f"Using randomOverlap communication pattern with count: {args.random_overlap}")
     print(f"Input method: {args.input_method}")
+    if args.verbose:
+        print("Verbose output enabled")
+    if args.hpctoolkit:
+        print("Running simulations with hpctoolkit")
+    if args.dry:
+        print("Dry run enabled")
+
+def comm_configs_list(args):
+    comm_pattern_args = []
+    if args.corners:
+        comm_pattern_args.append("corners")
+    if args.wavefront:
+        comm_pattern_args.append("wavefront")
+    if args.random is not None:
+        for count in args.random:
+            comm_pattern_args.append(f"random {count}")
+    if args.random_overlap is not None:
+        for count in args.random_overlap:
+            comm_pattern_args.append(f"randomOverlap {count}")
+    return comm_pattern_args
+
+def grid_config_lists(args):
+    grid_configs = []
+    # Configs for 1D simulations
+    if 1 in args.dimensions:
+        counts = args.component_counts + args.side_lengths
+        for count in counts:
+            config = (1,count)
+            grid_configs.append(config)
+
+    # Configs for 2D simulations
+    if 2 in args.dimensions:
+        for count in args.component_counts:
+            side_length = int(math.sqrt(count))
+            config = (2, side_length)
+            grid_configs.append(config)
+        for side_length in args.side_lengths:
+            config = (2, side_length)
+            grid_configs.append(config)
+    
+    return grid_configs
+        
+
+
+def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, verbosity, input_method, with_toolkit):
+    #print(f"Submitting job with scale {node_count}x{ranks_per_node}x{threads_per_rank}, {comm_config}, {grid_config}, {side_length}, {timestep_count}, {input_method}")
+
+    prefix=f"{node_count}_{ranks_per_node}_{threads_per_rank}"
+
+    grid_prefix = f"{grid_config[0]}_{grid_config[1]}"
+    comm_prefix = "_".join(comm_config.split())
+    prefix = prefix + f"_{comm_prefix}_{grid_prefix}_{timestep_count}_{int(verbosity)}_{input_method}"
+    if with_toolkit:
+        prefix = prefix + "_hpctoolkit"
+    outfile = prefix + ".out"
+
+
+    sbatch_portion = f"sbatch -N {node_count} --cpus-per-task {threads_per_rank} --ntasks-per-node {ranks_per_node} -o {outfile}"
+    arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} {int(with_toolkit)} {prefix}'
+    command = sbatch_portion + " ./omnidispatch.sh " + arglist
+    print(command)
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    print_args(args)
+    
+    scale_configs = itertools.product(args.node_counts, args.ranks_per_node, args.threads_per_rank)
+    comm_configs = comm_configs_list(args)
+    grid_configs = grid_config_lists(args)
+
+    print("Comm configs:", comm_configs)
+    print("Grid configs:", grid_configs)
+    for (node_count, ranks_per_node, threads_per_rank) in scale_configs:
+        for comm_config in comm_configs:
+            for grid_config in grid_configs:
+                for timestep_count in args.timestep_counts:
+                    for input_method in args.input_method:
+                        submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit)
