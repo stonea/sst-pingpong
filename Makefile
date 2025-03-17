@@ -17,3 +17,4 @@ install:
 clean:
 	rm -rf tests/graphs libpingpong.so
 	sst-register -u pingpong
+	rm *.json *.tmp *.time *.out

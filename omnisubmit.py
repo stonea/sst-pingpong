@@ -120,6 +120,15 @@ def parse_arguments():
         action="store_true",
         help="Dry run (do not submit jobs)."
     )
+
+    parser.add_argument(
+        "--weak-scaling",
+        action='store_true',
+        help="Run weak scaling evaluation. This treats all grid and \
+              communication configurations as the configuration for \
+              a 1-node, 1-rank, 1-thread run. It then runs the simulation \
+              with scaled problem sizes of those base configurations."
+    )
     args = parser.parse_args()
 
     if not (args.side_lengths or args.component_count):
@@ -206,6 +215,30 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
     print(command)
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
+def scale_comms(comm_config, scale_config):
+    if comm_config == "corners" or comm_config == "wavefront":
+        return comm_config
+    message_count = comm_config.split()[1]
+    num_processes = scale_config[0] * scale_config[1] * scale_config[2]
+    scaled_message_count = int(message_count) * num_processes
+    return comm_config.split()[0] + " " + str(scaled_message_count)
+
+def scale_grid(grid_config, scale_config):
+    component_count = grid_config[1] ** grid_config[0]
+    num_processes = scale_config[0] * scale_config[1] * scale_config[2]
+    scaled_component_count = component_count * num_processes
+    scaled_side_length = int(math.pow(scaled_component_count, 1/grid_config[0]))
+    return (grid_config[0], scaled_side_length)
+
+def run_weak_scaling(args, scale_configs, comm_configs, grid_configs):
+    for comm_config in comm_configs:
+        for grid_config in grid_configs:
+            for scale_config in scale_configs:
+                scaled_comms = scale_comms(comm_config, scale_config)
+                scaled_grid = scale_grid(grid_config, scale_config)
+                for timestep_count in args.timestep_counts:
+                        for input_method in args.input_method:
+                            submit_job(scale_config[0], scale_config[1], scale_config[2], scaled_comms, scaled_grid, timestep_count, args.verbose, input_method, args.hpctoolkit)
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -215,11 +248,13 @@ if __name__ == "__main__":
     comm_configs = comm_configs_list(args)
     grid_configs = grid_config_lists(args)
 
-    print("Comm configs:", comm_configs)
-    print("Grid configs:", grid_configs)
-    for (node_count, ranks_per_node, threads_per_rank) in scale_configs:
-        for comm_config in comm_configs:
-            for grid_config in grid_configs:
-                for timestep_count in args.timestep_counts:
-                    for input_method in args.input_method:
-                        submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit)
+    subprocess.run("make", shell=True, check=True)
+    if args.weak_scaling:
+        run_weak_scaling(args, scale_configs, comm_configs, grid_configs)
+    else:
+        for (node_count, ranks_per_node, threads_per_rank) in scale_configs:
+            for comm_config in comm_configs:
+                for grid_config in grid_configs:
+                    for timestep_count in args.timestep_counts:
+                        for input_method in args.input_method:
+                            submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit)

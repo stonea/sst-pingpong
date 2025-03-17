@@ -1,4 +1,5 @@
 #!/bin/bash
+# SST Scaling
 set -e
 set -x
 
@@ -29,10 +30,13 @@ fi
 
 srunPortion="srun -N $nodeCount --ntasks-per-node=$ranksPerNode --cpus-per-task=$threadsPerRank"
 
-sstPortion="sst -n $threadsPerRank --print-timing-info=true $inputFlags -- $simFlags"
+
+sstVerbose=""
 if [[ "$verbosity" == "1" ]]; then
-  sstPortion=$sstPortion" --verbose"
+  sstVerbose="--verbose"
 fi
+sstPortion="sst $sstVerbose -n $threadsPerRank --print-timing-info=true $inputFlags -- $simFlags"
+
 
 measurementsDir=measurements_$prefix
 databaseDir=database_$prefix
@@ -47,7 +51,7 @@ tmpOut=${prefix}.tmp
 $srunPortion $hpcPortion $sstPortion > $tmpOut
 timeFile=${prefix}.time
 grep "Build time:" $tmpOut | awk '{print $3}' > $timeFile
-grep "Run loop time:" $tmpOut | awk '{print $4}' >> $timeFile
+grep "Run stage Time:" $tmpOut | awk '{print $4}' >> $timeFile
 grep "Max Resident Set Size:" $tmpOut | awk -F': *' '{print $2}' >> $timeFile
 grep "Approx. Global Max RSS Size:" $tmpOut | awk -F': *' '{print $2}' >> $timeFile
 
@@ -57,3 +61,7 @@ if [[ "$withToolkit" == "1" ]]; then
   hpcprof -o $databaseDir $measurementsDir
 fi
 
+
+if [[ "$inputMethod" == "json" ]]; then
+  rm ${prefix}*.json
+fi
