@@ -16,30 +16,32 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Submit Slurm jobs to evaluate SST.")
 
     # Required scale arguments
-    parser.add_argument(
+    scale_group = parser.add_argument_group("Scale Options")
+    scale_group.add_argument(
         "node_counts", 
         type=int_list, 
         help="List of node counts to use (e.g., '1 2 4 8')."
     )
-    parser.add_argument(
+    scale_group.add_argument(
         "ranks_per_node", 
         type=int_list, 
         help="List of MPI ranks per node to use (e.g., '1 2 4')."
     )
-    parser.add_argument(
+    scale_group.add_argument(
         "threads_per_rank", 
         type=int_list, 
         help="List of threads per MPI rank to use (e.g., '1 2')."
     )
 
     # Problem size arguments (required)
-    parser.add_argument(
+    grid_group = parser.add_argument_group("Grid Options")
+    grid_group.add_argument(
         "--dimensions", 
         type=int_list,
         required=True, 
         help="Number(s) of dimensions to use (1 or 2 or '1 2' for both)."
     )
-    parser.add_argument(
+    grid_group.add_argument(
         "--side-length", "--side-lengths",
         type=int_list, 
         dest="side_lengths",
@@ -47,7 +49,7 @@ def parse_arguments():
         help="List of side lengths of the grid (e.g., '128 256')."
     )
 
-    parser.add_argument(
+    grid_group.add_argument(
         "--component-counts", "--component-count",
         type=int_list,
         dest="component_counts",
