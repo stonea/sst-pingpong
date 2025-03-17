@@ -2,6 +2,10 @@ import math
 import argparse
 import itertools
 import subprocess
+import os
+
+working_dir = os.getcwd()
+script_dir = os.path.dirname(os.path.realpath(__file__))
 
 def int_list(value):
     try:
@@ -210,9 +214,11 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
     outfile = prefix + ".out"
 
 
+    script_path = os.path.join(script_dir, "omnidispatch.sh")
+
     sbatch_portion = f"sbatch -N {node_count} --cpus-per-task {threads_per_rank} --ntasks-per-node {ranks_per_node} -o {outfile}"
     arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} {int(with_toolkit)} {prefix}'
-    command = sbatch_portion + " ./omnidispatch.sh " + arglist
+    command = sbatch_portion + f" {script_path} " + arglist
     print(command)
     if not dry:
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
@@ -250,7 +256,10 @@ if __name__ == "__main__":
     comm_configs = comm_configs_list(args)
     grid_configs = grid_config_lists(args)
 
+    os.chdir(script_dir)
     subprocess.run("make", shell=True, check=True)
+    os.chdir(working_dir)
+
     if args.weak_scaling:
         run_weak_scaling(args, scale_configs, comm_configs, grid_configs)
     else:
