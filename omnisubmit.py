@@ -39,6 +39,7 @@ def parse_arguments():
         "--side-length", "--side-lengths",
         type=int_list, 
         dest="side_lengths",
+        default="",
         help="List of side lengths of the grid (e.g., '128 256')."
     )
 
@@ -131,8 +132,8 @@ def parse_arguments():
     )
     args = parser.parse_args()
 
-    if not (args.side_lengths or args.component_count):
-        parser.error("At least one of --side-length or --component-count must be provided.")
+    if args.side_lengths + args.component_counts == []:
+        parser.error("At least one of --side-length or --component-counts must be provided.")
 
     return args
 
