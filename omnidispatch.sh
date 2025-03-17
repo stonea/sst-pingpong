@@ -1,6 +1,5 @@
 #!/bin/bash
 # SST Scaling
-set -e
 set -x
 scriptDir="$(dirname "$(scontrol show job "$SLURM_JOB_ID" | awk -F= '/Command=/{print $2}')")"
 echo "$scriptDir"
@@ -52,6 +51,14 @@ tmpOut=${prefix}.tmp
 timeFile=${prefix}.time
 touch $timeFile
 $srunPortion $hpcPortion $sstPortion > $tmpOut
+
+if [[ $? -ne 0 ]]; then
+  echo "Failure" > $timeFile
+  if [[ "$inputMethod" == "json" ]]; then
+    rm ${prefix}*.json
+  fi
+  exit 1
+fi
 
 grep "Build time:" $tmpOut | awk '{print $3}' > $timeFile
 grep "Run stage Time:" $tmpOut | awk '{print $4}' >> $timeFile

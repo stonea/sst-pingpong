@@ -19,6 +19,8 @@ config const random = -1;
 config const randomOverlap = -1;
 config const wavefront = false;
 
+config const numDims=2;
+
 proc verifyConfigOptions() {
   const numPatterns = (corners == true) + (random >= 0) + 
                       (randomOverlap >= 0) + (wavefront == true);
@@ -31,7 +33,7 @@ verifyConfigOptions();
 
 var s: stopwatch;
 
-var elementCount = sideLength * sideLength;
+var elementCount = sideLength ** numDims;
 var elementsPerRank = elementCount / rankCount;
 var elementsPerThread = elementsPerRank / threadsPerRank;
 
@@ -122,10 +124,10 @@ proc createPongers() {
     var idxs = sample(0..<elementCount, random);
 
     for idx in idxs {
-      var direction = stream.next(1,4);
+      var direction = stream.next(1, 2**numDims);
       if direction == 1 then pongers[idx].north = 1;
-      if direction == 2 then pongers[idx].east = 1;
-      if direction == 3 then pongers[idx].south = 1;
+      if direction == 2 then pongers[idx].south = 1;
+      if direction == 3 then pongers[idx].east = 1;
       if direction == 4 then pongers[idx].west = 1;
     }
   }
@@ -133,33 +135,42 @@ proc createPongers() {
     var stream = new randomStream(int);
     for i in 1..randomOverlap {
       var idx = stream.next(0,elementCount-1);
-      var direction = stream.next(1,4);
+      var direction = stream.next(1, 2**numDims);
       if direction == 1 then pongers[idx].north = 1;
-      if direction == 2 then pongers[idx].east = 1;
-      if direction == 3 then pongers[idx].south = 1;
+      if direction == 2 then pongers[idx].south = 1;
+      if direction == 3 then pongers[idx].east = 1;
       if direction == 4 then pongers[idx].west = 1;
     }
   }
   if corners {
     var nw = 0;
-    var ne = sideLength -1;
+    var ne = sideLength - 1;
     var sw = sideLength * (sideLength - 1);
-    var se = sideLength * sideLength - 1;
-    pongers[nw].east = 1;
+    var se = elementCount - 1;
+
+    
     pongers[nw].south = 1;
-    pongers[ne].west = 1;
-    pongers[ne].south = 1;
-    pongers[sw].north = 1;
-    pongers[sw].east = 1;
     pongers[se].north = 1;
-    pongers[se].west = 1;
+    if numDims == 2 {
+      pongers[se].west = 1;
+      pongers[nw].east = 1;
+      pongers[ne].west = 1;
+      pongers[ne].south = 1;
+      pongers[sw].north = 1;
+      pongers[sw].east = 1;
+    }
+    
+    
   }
   if wavefront {
     forall i in 0..<sideLength {
       pongers[i].south = 1;
-      pongers[i * sideLength].east = 1;
-      pongers[(i+1) * sideLength - 1].west = 1;
-      pongers[sideLength * (sideLength - 1) + i].north = 1;
+      if numDims == 2 {
+        pongers[i * sideLength].east = 1;
+        pongers[(i+1) * sideLength - 1].west = 1;
+        pongers[sideLength * (sideLength - 1) + i].north = 1;
+      }
+      
     }
   }
   return pongers;
@@ -170,7 +181,7 @@ var pongers: [0..<elementCount] ponger = createPongers();
 s.stop();
 writeln("Creating pongers: ", s.elapsed(), " seconds");
 
-proc createLinks() {
+proc createLinks2D() {
   var grid: [0..<sideLength, 0..<sideLength] int;
   for (i,j) in grid.domain do grid[i,j] = i*sideLength + j;
 
@@ -191,8 +202,30 @@ proc createLinks() {
   return links;
 }
 
+
+proc createLinks1D() {
+  var grid: [0..<sideLength] int;
+  for i in grid.domain do grid[i] = i;
+
+  var linkNum = 0;
+  var links: list(link);
+  for i in grid.domain {
+    if (i+1) % sideLength != 0 {
+      var l = new link(linkNum, grid[i], grid[i+1], "south", "north");
+      linkNum += 1;
+      links.pushBack(l);
+    } 
+  }
+  return links;
+}
+
 s.restart();
-var links = createLinks();
+var links: list(link);
+if numDims == 1 {
+  links = createLinks1D();
+} else {
+  links = createLinks2D();
+} 
 s.stop();
 writeln("Creating links: ", s.elapsed(), " seconds");
 
