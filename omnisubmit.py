@@ -197,7 +197,7 @@ def grid_config_lists(args):
         
 
 
-def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, verbosity, input_method, with_toolkit):
+def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, verbosity, input_method, with_toolkit, dry):
     #print(f"Submitting job with scale {node_count}x{ranks_per_node}x{threads_per_rank}, {comm_config}, {grid_config}, {side_length}, {timestep_count}, {input_method}")
 
     prefix=f"{node_count}_{ranks_per_node}_{threads_per_rank}"
@@ -214,7 +214,8 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
     arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} {int(with_toolkit)} {prefix}'
     command = sbatch_portion + " ./omnidispatch.sh " + arglist
     print(command)
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if not dry:
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
 def scale_comms(comm_config, scale_config):
     if comm_config == "corners" or comm_config == "wavefront":
@@ -239,13 +240,13 @@ def run_weak_scaling(args, scale_configs, comm_configs, grid_configs):
                 scaled_grid = scale_grid(grid_config, scale_config)
                 for timestep_count in args.timestep_counts:
                         for input_method in args.input_method:
-                            submit_job(scale_config[0], scale_config[1], scale_config[2], scaled_comms, scaled_grid, timestep_count, args.verbose, input_method, args.hpctoolkit)
+                            submit_job(scale_config[0], scale_config[1], scale_config[2], scaled_comms, scaled_grid, timestep_count, args.verbose, input_method, args.hpctoolkit, args.dry)
 
 if __name__ == "__main__":
     args = parse_arguments()
     print_args(args)
     
-    scale_configs = itertools.product(args.node_counts, args.ranks_per_node, args.threads_per_rank)
+    scale_configs = list(itertools.product(args.node_counts, args.ranks_per_node, args.threads_per_rank))
     comm_configs = comm_configs_list(args)
     grid_configs = grid_config_lists(args)
 
@@ -258,4 +259,4 @@ if __name__ == "__main__":
                 for grid_config in grid_configs:
                     for timestep_count in args.timestep_counts:
                         for input_method in args.input_method:
-                            submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit)
+                            submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit, args.dry)
