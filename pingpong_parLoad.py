@@ -12,10 +12,12 @@ parser = argparse.ArgumentParser(
   prog='SSTPingPong',
   description='Run a simulation consisting of several components arranged in a 1D or 2D grid that send messages back and forth')
 parser.add_argument('--N',              type=int, default=10)
+parser.add_argument('--numDims',        type=int, choices=[1,2], default=2)
 parser.add_argument('--timeToRun',      type=int, default=200)
 parser.add_argument('--edgeDelay',      type=int, default=50)
 parser.add_argument('--artificialWork', type=int, default=0)
 parser.add_argument('--verbose',        default=False, action='store_true')
+parser.add_argument('--printTime',      default=False, action='store_true')
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('--corners',         default=False, action='store_true')
 group.add_argument('--random',          type=int, default=-1)
@@ -86,6 +88,9 @@ if args.corners:
       ballsHeadingNorthAt[SW_PONGER] = 1
       ballsHeadingNorthAt[SE_PONGER] = 1
 elif args.random != -1:
+  if args.numDims == 1:
+    print("--random does not currently work with numDims=1. Use --randomOverlap.")
+    exit(1)
   numBalls = args.random / numRanks
   if myRank == numRanks-1:
     numBalls += args.random % numRanks
@@ -102,14 +107,21 @@ elif args.randomOverlap != -1:
   if myRank == numRanks-1:
     numBalls += args.randomOverlap % numRanks
   for _ in range(numBalls):
-    r = random.randint(0, numComponentsOwnedByRank - 1)
-    loc = rankRowStart * args.N + r
+    if args.numDims == 1:
+      r = random.randint(0, (rankRowEnd - rankRowStart))
+      loc = (rankRowStart * args.N) + (r * args.N)
+    else:
+      r = random.randint(0, numComponentsOwnedByRank - 1)
+      loc = rankRowStart * args.N + r
     direction = random.randint(0,3)
-    if direction   == 0: ballsHeadingNorthAt[r] = 1
-    elif direction == 1: ballsHeadingSouthAt[r] = 1
-    elif direction == 2: ballsHeadingWestAt[r]  = 1
-    elif direction == 3: ballsHeadingEastAt[r]  = 1
+    if direction   == 0: ballsHeadingNorthAt[loc] = 1
+    elif direction == 1: ballsHeadingSouthAt[loc] = 1
+    elif direction == 2: ballsHeadingWestAt[loc]  = 1
+    elif direction == 3: ballsHeadingEastAt[loc]  = 1
 elif args.wavefront:
+  if args.numDims == 1:
+    print("--wavefront does not currently work with numDims=1. Use --randomOverlap.")
+    exit(1)
     if(myRank == 0):
       for i in range(0,args.N):
         ballsHeadingSouthAt[i] = 1
@@ -126,7 +138,7 @@ else:
 if args.verbose:
   print("Initial balls on rank %d --" % myRank)
   for i in range(0,args.N):
-    for j in range(0,args.N):
+    for j in [0] if args.numDims == 1 else range(0,args.N):
       me = i * args.N + j;
       if me in ballsHeadingEastAt:  print("%5i %4i %4i %s" % (me, i, j, "east"))
       if me in ballsHeadingWestAt:  print("%5i %4i %4i %s" % (me, i, j, "west"))
@@ -147,31 +159,31 @@ def makePonger(i,j,rank):
 # top row of "ghost" pongers
 if myRank > 0:
   i = rankRowStart-1
-  for j in range(0,args.N):
+  for j in [0] if args.numDims == 1 else range(0,args.N):
     makePonger(i,j,myRank-1)
 
 # pongers owned by this rank
 for i in range(rankRowStart,rankRowEnd):
-  for j in range(0,args.N):
+  for j in [0] if args.numDims == 1 else range(0,args.N):
     makePonger(i,j,myRank)
 
 # bottom row of "ghost" pongers
 if myRank < numRanks-1:
   i = rankRowEnd
-  for j in range(0,args.N):
+  for j in [0] if args.numDims == 1 else range(0,args.N):
     makePonger(i,j,myRank+1)
 
 # i = row, j = col, (0,0) = north west corner
 # Note this loop won't create the east/westward links on of the final row of
 # "ghost" pongers but those aren't necessary.
 for i in range(max(0,rankRowStart-1),rankRowEnd):
-  for j in range(0,args.N):
+  for j in [0] if args.numDims == 1 else range(0,args.N):
     me = i * args.N + j;
     neighborS = me + args.N
     neighborE = me + 1
 
     connectS = i < args.N-1
-    connectE = j < args.N-1
+    connectE = j < args.N-1 and args.numDims > 1
 
     if connectS:
       link(i,j, pingPongers[me], pingPongers[neighborS], "south")
@@ -180,5 +192,5 @@ for i in range(max(0,rankRowStart-1),rankRowEnd):
 
 endTime = time.time()
 elapsedTime = endTime - startTime
-print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
-
+if args.printTime:
+  print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
