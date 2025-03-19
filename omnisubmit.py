@@ -118,8 +118,10 @@ def parse_arguments():
 
     parser.add_argument(
         "--hpctoolkit",
-        action="store_true",
-        help="Runs simulations with hpctoolkit"
+        nargs='?',
+        const = '',
+        default = None,
+        help="Runs simulations with hpctoolkit, optionally passing the argument text as a flag to hpctoolkit. (e.g., --hpctoolkit='-e MEMLEAK'"
     )
 
     parser.add_argument(
@@ -161,7 +163,7 @@ def print_args(args):
     print(f"Input method: {args.input_method}")
     if args.verbose:
         print("Verbose output enabled")
-    if args.hpctoolkit:
+    if args.hpctoolkit != '0':
         print("Running simulations with hpctoolkit")
     if args.dry:
         print("Dry run enabled")
@@ -213,13 +215,15 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
     prefix = prefix + f"_{comm_prefix}_{grid_prefix}_{timestep_count}_{int(verbosity)}_{input_method}"
     if with_toolkit:
         prefix = prefix + "_hpctoolkit"
+        if with_toolkit != '':
+            prefix = prefix + "_" + with_toolkit.replace(' ', '_')
     outfile = prefix + ".out"
 
 
     script_path = os.path.join(script_dir, "omnidispatch.sh")
 
     sbatch_portion = f"sbatch -N {node_count} --cpus-per-task {threads_per_rank} --ntasks-per-node {ranks_per_node} -o {outfile}"
-    arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} {int(with_toolkit)} {prefix}'
+    arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} "{with_toolkit}" {prefix}'
     command = sbatch_portion + f" {script_path} " + arglist
     print(command)
     if not dry:

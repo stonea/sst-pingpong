@@ -15,12 +15,17 @@ inputMethod=$9
 withToolkit=${10}
 prefix=${11}
 
+tmpOut=${prefix}.tmp
+timeFile=${prefix}.time
+rm $timeFile
+touch $timeFile
+
 inputFlags=""
 simFlags="--numDims $dimCount --N $sideLength --timeToRun $timeStepCount --$commConfig"
 if [[ "$inputMethod" == "json" ]]; then
   echo "Generating JSON input file..."
-  ${scriptDir}/json-generator/jsonGenerator --rankCount $nodeCount --threadsPerRank $threadsPerRank --sideLength $sideLength --timeToRun $timeStepCount --outputPrefix=$prefix --$commConfig
-  inputFlags="--parallel-load ${prefix}.json"
+  ${scriptDir}/json-generator/jsonGenerator --rankCount $nodeCount --threadsPerRank $threadsPerRank --sideLength $sideLength --timeToRun $timeStepCount --outputPrefix=$prefix --$commConfig --numDims $dimCount
+  inputFlags="--parallel-load=MULTI ${prefix}.json"
 elif [[ "$inputMethod" == "parallelPython" ]]; then
   inputFlags="--parallel-load=SINGLE ${scriptDir}/pingpong_parLoad.py"
 else 
@@ -33,7 +38,7 @@ srunPortion="srun -N $nodeCount --ntasks-per-node=$ranksPerNode --cpus-per-task=
 sstVerbose=""
 if [[ "$verbosity" == "1" ]]; then
   sstVerbose="--verbose"
-  simFlags="$simFlags --verbose"
+  simFlags="$simFlags"
 fi
 sstPortion="sst $sstVerbose -n $threadsPerRank --print-timing-info=true $inputFlags -- $simFlags"
 
@@ -41,15 +46,13 @@ sstPortion="sst $sstVerbose -n $threadsPerRank --print-timing-info=true $inputFl
 measurementsDir=measurements_$prefix
 databaseDir=database_$prefix
 hpcPortion=" "
-if [[ "$withToolkit" == "1" ]]; then
+if [[ "$withToolkit" -ne "None" ]]; then
   echo "Running with hpctoolkit..."
   spack load hpctoolkit
-  hpcPortion="hpcrun -o $measurementsDir --"
+  hpcPortion="hpcrun -o $measurementsDir $withToolkit --"
 fi
 
-tmpOut=${prefix}.tmp
-timeFile=${prefix}.time
-touch $timeFile
+
 $srunPortion $hpcPortion $sstPortion > $tmpOut
 
 if [[ $? -ne 0 ]]; then
