@@ -46,7 +46,7 @@ sstPortion="sst $sstVerbose -n $threadsPerRank --print-timing-info=true $inputFl
 measurementsDir=measurements_$prefix
 databaseDir=database_$prefix
 hpcPortion=" "
-if [[ "$withToolkit" -ne "None" ]]; then
+if [[ "$withToolkit" != "None" ]]; then
   echo "Running with hpctoolkit..."
   spack load hpctoolkit
   hpcPortion="hpcrun -o $measurementsDir $withToolkit --"
@@ -69,8 +69,8 @@ grep "Max Resident Set Size:" $tmpOut | awk -F': *' '{print $2}' >> $timeFile
 grep "Approx. Global Max RSS Size:" $tmpOut | awk -F': *' '{print $2}' >> $timeFile
 
 
-if [[ "$withToolkit" == "1" ]]; then
-  hpcstruct $measurementsDir
+if [[ "$withToolkit" != "None" ]]; then
+  hpcstruct -c hpcstruct_cache $measurementsDir
   hpcprof -o $databaseDir $measurementsDir
 fi
 
