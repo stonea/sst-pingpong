@@ -61,8 +61,6 @@ class Ponger : public SST::Component {
     int64_t ballsHeadingSouth;
     int64_t ballsHeadingWest;
     int64_t ballsHeadingEast;
-
-    SST::Output out;
     
 
     SST::Link *northPort, *southPort, *westPort, *eastPort;
