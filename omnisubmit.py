@@ -12,6 +12,7 @@ def int_list(value):
         return [int(x) for x in value.split()]
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid list of integers: '{value}'")
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Submit Slurm jobs to evaluate SST.")
 
@@ -138,6 +139,13 @@ def parse_arguments():
               a 1-node, 1-rank, 1-thread run. It then runs the simulation \
               with scaled problem sizes of those base configurations."
     )
+
+    parser.add_argument(
+        "--name",
+        type=str,
+        help="(Optional) Name of the experiment that is appended to the output files."
+    )
+
     args = parser.parse_args()
 
     if args.side_lengths + args.component_counts == []:
@@ -167,6 +175,10 @@ def print_args(args):
         print("Running simulations with hpctoolkit")
     if args.dry:
         print("Dry run enabled")
+    if args.weak_scaling:
+        print("Running weak scaling evaluation")
+    if args.name:
+        print(f"Experiment name: {args.name}")
 
 def comm_configs_list(args):
     comm_pattern_args = []
@@ -217,6 +229,8 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
         prefix = prefix + "_hpctoolkit"
         if with_toolkit != '':
             prefix = prefix + "_" + with_toolkit.replace(' ', '_')
+    if args.name:
+        prefix = prefix + "_" + args.name
     outfile = prefix + ".out"
 
 
