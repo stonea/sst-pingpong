@@ -46,9 +46,6 @@ class Ponger : public SST::Component {
       { "eastPort",  "Port to east",  {"pingpong.BallEvent"}}
     )
 
-    SST_ELI_DOCUMENT_STATISTICS(
-      { "ballEncounters", "Times this ponger has encountered a ball", "balls", 1 }
-    )
 
 #ifdef ENABLE_SSTDBG
     void printStatus(SST::Output& out) override;
@@ -66,7 +63,7 @@ class Ponger : public SST::Component {
     int64_t ballsHeadingEast;
 
     SST::Output out;
-    SST::Statistics::Statistic<int> *statBallEncounters;
+    
 
     SST::Link *northPort, *southPort, *westPort, *eastPort;
 
@@ -75,6 +72,5 @@ class Ponger : public SST::Component {
 #endif
 };
 
-std::vector<SST::Statistics::Statistic<int>*> portStats;
 
 #endif

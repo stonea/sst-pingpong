@@ -43,8 +43,6 @@ Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   westPort  = configureLink("westPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleWestPort));
   eastPort  = configureLink("eastPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleEastPort));
 
-  statBallEncounters = registerStatistic<int>("ballEncounters", "paddle_"+std::to_string(id));
-  portStats.push_back(statBallEncounters);
 
 #ifdef ENABLE_SSTDBG
   dbg = new SSTDebug(getName(),"./");
