@@ -45,3 +45,5 @@ There is also a `--verbose` that if passed prints debugging information.
 This repository also contains scripts necessary to run scaling evaluations of the ping-pong simulation: `omnisubmit.py` and `omnidispatch.sh`.
 These scripts are meant to be used on a machine that runs jobs using SLURM. 
 In general, you will only need to use the `omnisubmit.py` script, which submits the jobs for whatever scaling evaluation you wish to run. 
+
+TODO: details about how to use omnisubmit.
