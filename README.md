@@ -1,6 +1,7 @@
 # sst-pingpong
 
-This repository contains files implementing a 2-dimensional ping-pong simulation and the scripts necessary to do scaling evaluation and profiling of the simulation. The simulation code was prepared by Andy Stone; the scaling and profiling evaluations by Brandon Neth.
+This repository contains files implementing a 1 or 2 dimensional ping-pong simulation and the scripts necessary to do scaling evaluation and profiling of the simulation. 
+The simulation code was prepared by Andy Stone and the submission/profiling scripts by Brandon Neth.
 
 To study SST’s scalability, we have developed a "ping pong” benchmark. The purpose of this benchmark is to study SST's performance when conducting a simulation that consists of large numbers of simple components.
 
@@ -17,8 +18,12 @@ The ponger components can be arranged into a 1-dimensional grid of N components
 that connect west-to-east or a 2D grid of NxN components.  The pongers are
 preloaded with a set number of "ball" messages.
 
-To run, invoke SST with the `ponger.py` script.  The `ponger.py` script takes
-the following parameters (each take an integer argument):
+There are two python scripts that can be used as input configurations for SST.
+Both have the same command line arguments.
+- `pingpong.py`: A sequential version of the script
+- `pingpong_parLoad.py`: A parallel loading version of the script.
+
+To run, invoke SST with one of the two scripts. The scripts take the following parameters (each taking an integer argument):
 
 - `--N` -- Size of the grid (defaults to 10)
 - `--timeToRun` -- How long to run the simulation (in seconds; defaults to 200)
@@ -33,3 +38,10 @@ Additionally the user must choose exactly one of the following to set the initia
 - `--wavefront` -- add balls along the perimeter of the grid (only works on 2d sim)
 
 There is also a `--verbose` that if passed prints debugging information.
+
+
+# Submission Scripts
+
+This repository also contains scripts necessary to run scaling evaluations of the ping-pong simulation: `omnisubmit.py` and `omnidispatch.sh`.
+These scripts are meant to be used on a machine that runs jobs using SLURM. 
+In general, you will only need to use the `omnisubmit.py` script, which submits the jobs for whatever scaling evaluation you wish to run. 

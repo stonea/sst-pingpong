@@ -10,10 +10,11 @@ commConfig=$4
 dimCount=$5
 sideLength=$6
 timeStepCount=$7
-verbosity=$8
-inputMethod=$9
-withToolkit=${10}
-prefix=${11}
+edgeDelay=$8
+verbosity=$9
+inputMethod=${10}
+withToolkit=${11}
+prefix=${12}
 
 tmpOut=${prefix}.tmp
 timeFile=${prefix}.time
@@ -21,10 +22,10 @@ rm $timeFile
 touch $timeFile
 
 inputFlags=""
-simFlags="--numDims $dimCount --N $sideLength --timeToRun $timeStepCount --$commConfig"
+simFlags="--numDims $dimCount --N $sideLength --timeToRun $timeStepCount --$commConfig --edgeDelay=$edgeDelay"
 if [[ "$inputMethod" == "json" ]]; then
   echo "Generating JSON input file..."
-  ${scriptDir}/json-generator/jsonGenerator --rankCount $nodeCount --threadsPerRank $threadsPerRank --sideLength $sideLength --timeToRun $timeStepCount --outputPrefix=$prefix --$commConfig --numDims $dimCount
+  ${scriptDir}/json-generator/jsonGenerator --rankCount $nodeCount --threadsPerRank $threadsPerRank --sideLength $sideLength --timeToRun $timeStepCount --edgeDelay=$edgeDelay --outputPrefix=$prefix --$commConfig --numDims $dimCount
   inputFlags="--parallel-load=MULTI ${prefix}.json"
 elif [[ "$inputMethod" == "parallelPython" ]]; then
   inputFlags="--parallel-load=SINGLE ${scriptDir}/pingpong_parLoad.py"
