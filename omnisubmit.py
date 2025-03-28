@@ -43,15 +43,14 @@ def parse_arguments():
         help="Number(s) of dimensions to use (1 or 2 or '1 2' for both)."
     )
     grid_group.add_argument(
-        "--side-length", "--side-lengths",
+        "--side-length", "--side-lengths", "--sideLengths", "--sideLength",
         type=int_list, 
         dest="side_lengths",
         default="",
         help="List of side lengths of the grid (e.g., '128 256')."
     )
-
     grid_group.add_argument(
-        "--component-counts", "--component-count",
+        "--component-counts", "--component-count", "--componentCounts", "--componentCount",
         type=int_list,
         dest="component_counts",
         default="",
@@ -59,8 +58,7 @@ def parse_arguments():
         )
 
     # Communication pattern arguments
-    pattern_group = parser.add_argument_group("Communication Options")
-    pattern_group.add_argument("--edge-delay", '--edgeDelay', type=int, default=50, help="Edge delay between components. Default is 50.")
+    pattern_group = parser.add_argument_group("Communication Pattern Options")
     pattern_group.add_argument(
         "--corners",
         action="store_true",
@@ -85,15 +83,17 @@ def parse_arguments():
         help="Use the randomOverlap communication pattern with a specified count."
     )
     
-    # Timestep count argument
-    parser.add_argument(
-        "--timestep-count", "--timestep-counts",
+    time_group = parser.add_argument_group("Time Options")
+    time_group.add_argument(
+        "--timestep-count", "--timestep-counts", "--time-to-run", "--times-to-run",
         dest="timestep_counts",
         type=int_list,
         help="List of timestep counts to use (e.g., '100 200').",
         default="1000"
     )
+    time_group.add_argument("--edge-delay", '--edgeDelay', type=int, default=50, help="Edge delay between components. Default is 50.")
 
+    sim_group = parser.add_argument_group("Other Simulation Options")
     # Input method argument
     def input_type_list(value):
         valid_inputs = ["python", "parallelPython", "json"]
@@ -105,34 +105,30 @@ def parse_arguments():
             return values
         except ValueError:
             raise argparse.ArgumentTypeError(f"Invalid list of strings: '{value}'")
-    parser.add_argument(
+    sim_group.add_argument(
         "--input-method",
         type=input_type_list,
+        metavar="METHOD(S)",
         required=True,
-        help="Input method to use (options: 'python', 'parallelPython', 'json')."
+        help="Input method to use (options: 'python', 'parallelPython', 'json'). This accepts a quoted, space-separated list of valid options as well. (e.g., --input-method 'python parallelPython')"
     )
 
-    parser.add_argument(
+    sim_group.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose simulation output."
     )
 
-    parser.add_argument(
+    experiment_group = parser.add_argument_group("Experiment Options")
+    experiment_group.add_argument(
         "--hpctoolkit",
         nargs='?',
         const = '',
         default = None,
-        help="Runs simulations with hpctoolkit, optionally passing the argument text as a flag to hpctoolkit. (e.g., --hpctoolkit='-e MEMLEAK'"
+        help="Runs simulations with hpctoolkit, optionally passing the argument text as a flag to hpctoolkit. (e.g., --hpctoolkit='-e MEMLEAK')"
     )
 
-    parser.add_argument(
-        "--dry",
-        action="store_true",
-        help="Dry run (do not submit jobs)."
-    )
-
-    parser.add_argument(
+    experiment_group.add_argument(
         "--weak-scaling",
         action='store_true',
         help="Run weak scaling evaluation. This treats all grid and \
@@ -141,10 +137,16 @@ def parse_arguments():
               with scaled problem sizes of those base configurations."
     )
 
-    parser.add_argument(
+    experiment_group.add_argument(
         "--name",
         type=str,
         help="(Optional) Name of the experiment that is appended to the output files."
+    )
+
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="Dry run (do not submit jobs)."
     )
 
     args = parser.parse_args()
