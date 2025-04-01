@@ -4,7 +4,7 @@ LDFLAGS=$(shell sst-config --ELEMENT_LDFLAGS)
 PARAMS=
 #PARAMS="-DENABLE_SSTDBG"
 
-SRCS=Simulator.cpp Ponger.cpp GlobalParams.cpp
+SRCS=Simulator.cpp Ponger.cpp GlobalParams.cpp HyperPonger.cpp
 
 all: libpingpong.so install
 
