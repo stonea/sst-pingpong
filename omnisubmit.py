@@ -43,15 +43,14 @@ def parse_arguments():
         help="Number(s) of dimensions to use (1 or 2 or '1 2' for both)."
     )
     grid_group.add_argument(
-        "--side-length", "--side-lengths",
+        "--side-length", "--side-lengths", "--sideLengths", "--sideLength",
         type=int_list, 
         dest="side_lengths",
         default="",
         help="List of side lengths of the grid (e.g., '128 256')."
     )
-
     grid_group.add_argument(
-        "--component-counts", "--component-count",
+        "--component-counts", "--component-count", "--componentCounts", "--componentCount",
         type=int_list,
         dest="component_counts",
         default="",
@@ -59,7 +58,7 @@ def parse_arguments():
         )
 
     # Communication pattern arguments
-    pattern_group = parser.add_argument_group("Communication Options")
+    pattern_group = parser.add_argument_group("Communication Pattern Options")
     pattern_group.add_argument(
         "--corners",
         action="store_true",
@@ -83,16 +82,18 @@ def parse_arguments():
         metavar="COUNT(S)",
         help="Use the randomOverlap communication pattern with a specified count."
     )
-
-    # Timestep count argument
-    parser.add_argument(
-        "--timestep-count", "--timestep-counts",
+    
+    time_group = parser.add_argument_group("Time Options")
+    time_group.add_argument(
+        "--timestep-count", "--timestep-counts", "--time-to-run", "--times-to-run",
         dest="timestep_counts",
         type=int_list,
         help="List of timestep counts to use (e.g., '100 200').",
         default="1000"
     )
+    time_group.add_argument("--edge-delay", '--edgeDelay', type=int, default=50, help="Edge delay between components. Default is 50.")
 
+    sim_group = parser.add_argument_group("Other Simulation Options")
     # Input method argument
     def input_type_list(value):
         valid_inputs = ["python", "parallelPython", "json"]
@@ -104,34 +105,30 @@ def parse_arguments():
             return values
         except ValueError:
             raise argparse.ArgumentTypeError(f"Invalid list of strings: '{value}'")
-    parser.add_argument(
+    sim_group.add_argument(
         "--input-method",
         type=input_type_list,
+        metavar="METHOD(S)",
         required=True,
-        help="Input method to use (options: 'python', 'parallelPython', 'json')."
+        help="Input method to use (options: 'python', 'parallelPython', 'json'). This accepts a quoted, space-separated list of valid options as well. (e.g., --input-method 'python parallelPython')"
     )
 
-    parser.add_argument(
+    sim_group.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose simulation output."
     )
 
-    parser.add_argument(
+    experiment_group = parser.add_argument_group("Experiment Options")
+    experiment_group.add_argument(
         "--hpctoolkit",
         nargs='?',
         const = '',
         default = None,
-        help="Runs simulations with hpctoolkit, optionally passing the argument text as a flag to hpctoolkit. (e.g., --hpctoolkit='-e MEMLEAK'"
+        help="Runs simulations with hpctoolkit, optionally passing the argument text as a flag to hpctoolkit. (e.g., --hpctoolkit='-e MEMLEAK')"
     )
 
-    parser.add_argument(
-        "--dry",
-        action="store_true",
-        help="Dry run (do not submit jobs)."
-    )
-
-    parser.add_argument(
+    experiment_group.add_argument(
         "--weak-scaling",
         action='store_true',
         help="Run weak scaling evaluation. This treats all grid and \
@@ -140,10 +137,16 @@ def parse_arguments():
               with scaled problem sizes of those base configurations."
     )
 
-    parser.add_argument(
+    experiment_group.add_argument(
         "--name",
         type=str,
         help="(Optional) Name of the experiment that is appended to the output files."
+    )
+
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="Dry run (do not submit jobs)."
     )
 
     args = parser.parse_args()
@@ -168,6 +171,8 @@ def print_args(args):
         print(f"Using random communication pattern with count: {args.random}")
     if args.random_overlap is not None:
         print(f"Using randomOverlap communication pattern with count: {args.random_overlap}")
+    print(f"Timestep counts: {args.timestep_counts}")
+    print(f'Edge delay: {args.edge_delay}')
     print(f"Input method: {args.input_method}")
     if args.verbose:
         print("Verbose output enabled")
@@ -217,14 +222,14 @@ def grid_config_lists(args):
         
 
 
-def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, verbosity, input_method, with_toolkit, dry):
+def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, edge_delay, verbosity, input_method, with_toolkit, dry):
     #print(f"Submitting job with scale {node_count}x{ranks_per_node}x{threads_per_rank}, {comm_config}, {grid_config}, {side_length}, {timestep_count}, {input_method}")
 
     prefix=f"{node_count}_{ranks_per_node}_{threads_per_rank}"
 
     grid_prefix = f"{grid_config[0]}_{grid_config[1]}"
     comm_prefix = "_".join(comm_config.split())
-    prefix = prefix + f"_{comm_prefix}_{grid_prefix}_{timestep_count}_{int(verbosity)}_{input_method}"
+    prefix = prefix + f"_{comm_prefix}_{grid_prefix}_{timestep_count}_{edge_delay}_{int(verbosity)}_{input_method}"
     if with_toolkit:
         prefix = prefix + "_hpctoolkit"
         if with_toolkit != '':
@@ -237,7 +242,7 @@ def submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_c
     script_path = os.path.join(script_dir, "omnidispatch.sh")
 
     sbatch_portion = f"sbatch -N {node_count} --cpus-per-task {threads_per_rank} --ntasks-per-node {ranks_per_node} -o {outfile}"
-    arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {int(verbosity)} {input_method} "{with_toolkit}" {prefix}'
+    arglist = f'{node_count} {ranks_per_node} {threads_per_rank} "{comm_config}" {grid_config[0]} {grid_config[1]} {timestep_count} {edge_delay} {int(verbosity)} {input_method} "{with_toolkit}" {prefix}'
     command = sbatch_portion + f" {script_path} " + arglist
     print(command)
     if not dry:
@@ -266,7 +271,7 @@ def run_weak_scaling(args, scale_configs, comm_configs, grid_configs):
                 scaled_grid = scale_grid(grid_config, scale_config)
                 for timestep_count in args.timestep_counts:
                         for input_method in args.input_method:
-                            submit_job(scale_config[0], scale_config[1], scale_config[2], scaled_comms, scaled_grid, timestep_count, args.verbose, input_method, args.hpctoolkit, args.dry)
+                            submit_job(scale_config[0], scale_config[1], scale_config[2], scaled_comms, scaled_grid, timestep_count, args.edge_delay, args.verbose, input_method, args.hpctoolkit, args.dry)
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -288,4 +293,4 @@ if __name__ == "__main__":
                 for grid_config in grid_configs:
                     for timestep_count in args.timestep_counts:
                         for input_method in args.input_method:
-                            submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.verbose, input_method, args.hpctoolkit, args.dry)
+                            submit_job(node_count, ranks_per_node, threads_per_rank, comm_config, grid_config, timestep_count, args.edge_delay, args.verbose, input_method, args.hpctoolkit, args.dry)

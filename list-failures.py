@@ -2,19 +2,28 @@
 
 import os
 
-print("Failures: ")
+
+failures = []
 for filename in os.listdir('.'):
     if filename.endswith('.time'):
         with open(filename) as f:
             contents = f.read()
             if 'Failure' in contents:
-                print(filename)
+                failures += [filename]
+#print sorted
+print("Failures: ", len(failures))
+for failure in sorted(failures):
+    print(failure)
 
 
-print("Still Running: ")
+running = []
 for filename in os.listdir('.'):
     if filename.endswith('.time'):
         with open(filename) as f:
             contents = f.read()
             if contents == "":
-                print(filename)
+                running += [filename]
+#print sorted
+print("Still Running: ", len(running))
+for run in sorted(running):
+    print(run)

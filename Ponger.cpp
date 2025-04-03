@@ -31,7 +31,6 @@ static void conductArtificialWork(int64_t count) {
 
 Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
-  , out("", 1, 0, SST::Output::STDOUT)
 {
   ballsHeadingNorth = params.find<int64_t>("ballsHeadingNorth", 0);
   ballsHeadingSouth = params.find<int64_t>("ballsHeadingSouth", 0);
@@ -43,8 +42,6 @@ Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   westPort  = configureLink("westPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleWestPort));
   eastPort  = configureLink("eastPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleEastPort));
 
-  statBallEncounters = registerStatistic<int>("ballEncounters", "paddle_"+std::to_string(id));
-  portStats.push_back(statBallEncounters);
 
 #ifdef ENABLE_SSTDBG
   dbg = new SSTDebug(getName(),"./");
