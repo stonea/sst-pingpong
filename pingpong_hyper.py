@@ -65,14 +65,15 @@ def ponger(g,i,j):
     return pongers[me]
 
   ponger = None
-  if args.dryRun != -1:
+  if args.dryRun == -1:
     ponger = sst.Component("p%i" % (me), "pingpong.hyperPonger")
   else:
     ponger = 1 # dummy value
   pongerRank = int(g / gridsPerRank)
-  ponger.setRank(pongerRank)
-  if pongerRank == myRank:
-    ponger.addParams({"numBalls": 0})
+  if args.dryRun == -1:
+    ponger.setRank(pongerRank)
+    if pongerRank == myRank:
+      ponger.addParams({"numBalls": 0})
   pongers[me] = ponger;
 
   isGhostPonger = int(g/gridsPerRank) != myRank
@@ -98,16 +99,28 @@ def hyperLink(g1,i1,j1, g2,i2,j2, port1Name, port2Name):
     print("Connect (%d,%d,%d) %s -- (%d,%d,%d) %s" % (g1,i1,j1,port1Name, g2,i2,j2,port2Name))
 
   linkName = "l%d_%d" % (minId, maxId)
-  if args.dryRun != -1:
+  if args.dryRun == -1:
     sst.Link(linkName).connect( (ponger1, port1Name, "%is" % args.edgeDelay), (ponger2, port2Name, "%is" % args.edgeDelay) )
+
+def prevDivisor(x, y):
+  while True:
+    if x % y == 0:
+      return y
+    y -= 1
+
+def nextDivisor(x, y):
+  while True:
+    if x % y == 0:
+      return y
+    y += 1
 
 # -----------------------------------------------------------------------------
 
 gridsPerRank = int(nGrids / numRanks)
 
 if nGrids % numRanks != 0:
-  print("nGrids (%d) not divisible by numRanks (%d) how about run with %d or %d compute nodes?" %
-        (nGrids, numRanks, (nGrids / int(nGrids/numRanks)), (nGrids / (int(nGrids/numRanks)+1))))
+  print("nGrids (%d) not divisible by numRanks (%d) how about run with %d or %d?" %
+        (nGrids, numRanks, prevDivisor(nGrids, numRanks), nextDivisor(nGrids, numRanks)))
   exit(1)
 
 if myRank == 0:
@@ -136,9 +149,9 @@ for g in range(firstGridOnRank, (myRank+1) * gridsPerRank):
         nextGridToConnect = (nextGridToConnect + 1) % nGrids
 
 print("Rank %3d nGrids=%8d numNonGhostComponents=%12d numGhostComponents=%14d" % (myRank, nGrids, numNumGhostComponents, numGhostPongers))
-if(args.dryRun != -1):
-  sys.exit(1)
 
-endTime = time.time()
-elapsedTime = endTime - startTime
-print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
+if(args.dryRun != -1):
+  endTime = time.time()
+  elapsedTime = endTime - startTime
+  print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
+  sys.exit(1)
