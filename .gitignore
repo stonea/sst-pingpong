@@ -2,3 +2,4 @@
 *.time
 *.tmp
 .vscode
+libpingpong.so*
