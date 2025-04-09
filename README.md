@@ -3,6 +3,12 @@
 This repository contains files implementing a 1 or 2 dimensional ping-pong simulation and the scripts necessary to do scaling evaluation and profiling of the simulation. 
 The simulation code was prepared by Andy Stone and the submission/profiling scripts by Brandon Neth.
 
+Prior to running the benchmark, please compile the source files by running:
+
+```bash
+make all
+```
+
 ## The Ping Pong Simulation
 To study SST’s scalability, we have developed a "ping pong” benchmark. The purpose of this benchmark is to study SST's performance when conducting a simulation that consists of large numbers of simple components.
 
@@ -24,7 +30,10 @@ Both have the same command line arguments.
 - `pingpong.py`: A sequential version of the script
 - `pingpong_parLoad.py`: A parallel loading version of the script.
 
-To run, invoke SST with one of the two scripts. The scripts take the following parameters (each taking an integer argument):
+To run, invoke SST with one of the two scripts.  E.g., ``sst pingpong.py --
+--corners``
+
+The scripts take the following parameters (each taking an integer argument):
 
 - `--N` -- Size of the grid (defaults to 10)
 - `--timeToRun` -- How long to run the simulation (in seconds; defaults to 200)
