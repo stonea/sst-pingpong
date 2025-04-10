@@ -65,7 +65,7 @@ def ponger(g,i,j):
     return pongers[me]
 
   ponger = None
-  if args.dryRun != -1:
+  if args.dryRun == -1:
     ponger = sst.Component("p%i" % (me), "pingpong.hyperPonger")
   else:
     ponger = 1 # dummy value
