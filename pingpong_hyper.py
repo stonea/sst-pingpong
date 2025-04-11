@@ -27,7 +27,7 @@ args = parser.parse_args()
 # -----------------------------------------------------------------------------
 
 N = args.N
-nGrids = N * 100
+nGrids = (N*N) * 100
 nHlPerPt = 100
 
 if args.dryRun == -1:
@@ -70,9 +70,10 @@ def ponger(g,i,j):
   else:
     ponger = 1 # dummy value
   pongerRank = int(g / gridsPerRank)
-  ponger.setRank(pongerRank)
-  if pongerRank == myRank:
-    ponger.addParams({"numBalls": 0})
+  if args.dryRun == -1:
+    ponger.setRank(pongerRank)
+    if pongerRank == myRank:
+      ponger.addParams({"numBalls": 0})
   pongers[me] = ponger;
 
   isGhostPonger = int(g/gridsPerRank) != myRank
@@ -82,10 +83,10 @@ def ponger(g,i,j):
     numNumGhostComponents += 1
 
   if args.verbose:
-    print(f"Make ponger ({g},{i},{j}) on {int(g / gridsPerRank)} {'*' if ghostPonger else ' '}")
+    print(f"Make ponger ({g},{i},{j}) on {int(g / gridsPerRank)} {'*' if isGhostPonger else ' '}")
   return ponger
 
-def hyperLink(g1,i1,j1, g2,i2,j2, port1Name, port2Name):
+def hyperLink(g1,i1,j1, g2,i2,j2, port1Name, port2Name, isPass2=False):
   id1 = pongerId(g1,i1,j1)
   id2 = pongerId(g2,i2,j2)
   minId = min(id1,id2)
@@ -97,32 +98,73 @@ def hyperLink(g1,i1,j1, g2,i2,j2, port1Name, port2Name):
   if args.verbose:
     print("Connect (%d,%d,%d) %s -- (%d,%d,%d) %s" % (g1,i1,j1,port1Name, g2,i2,j2,port2Name))
 
-  linkName = "l%d_%d" % (minId, maxId)
-  if args.dryRun != -1:
+  linkName = "l%s%d_%d" % ('' if not isPass2 else 'b', minId, maxId)
+  if args.dryRun == -1:
     sst.Link(linkName).connect( (ponger1, port1Name, "%is" % args.edgeDelay), (ponger2, port2Name, "%is" % args.edgeDelay) )
+
+def prevDivisor(x, y):
+  while True:
+    if x % y == 0:
+      return y
+    y -= 1
+
+def nextDivisor(x, y):
+  while True:
+    if x % y == 0:
+      return y
+    y += 1
 
 # -----------------------------------------------------------------------------
 
 gridsPerRank = int(nGrids / numRanks)
 
 if nGrids % numRanks != 0:
-  print("nGrids (%d) not divisible by numRanks (%d) how about run with %d or %d compute nodes?" %
-        (nGrids, numRanks, (nGrids / int(nGrids/numRanks)), (nGrids / (int(nGrids/numRanks)+1))))
+  print("nGrids (%d) not divisible by numRanks (%d) how about run with %d or %d?" %
+        (nGrids, numRanks, prevDivisor(nGrids, numRanks), nextDivisor(nGrids, numRanks)))
   exit(1)
 
 if myRank == 0:
+  print("Simulating %d, %dx%d grids" % (nGrids, N, N))
   ballGen = sst.Component("sim", "pingpong.simulator")
   ballGen.addParams({"timeToRun"      : args.timeToRun,
                      "verbose"        : args.verbose,
                      "artificialWork" : args.artificialWork})
   ballGen.setRank(0)
 
+# Consider if we have 400 2x2 grids, we assign inter-grid connections as
+# follows, where each * is a point in the 2x2 grid.  The number above each
+# point we call the pass 1 links and the numbers bove and below we call pass 2.
+#
+#           GRID 0                   GRID 1
+#   .--------------------,   .---------------------,
+#   |                    |   |                     |
+#   |   0-99     100-199 |   |  1-100     101-200  |
+#   |    *          *    |   |    *          *     |
+#   | 399-300    299-200 |   | 398-299    298-199  |
+#   |                    |   |                     |   . . .
+#   |                    |   |                     |
+#   | 200-299    300-399 |   | 201-300   301-399,0 |
+#   |    *          *    |   |    *          *     |
+#   | 199-100     99-0   |   | 198-99    98-0,399  |
+#   |                    |   |                     |
+#   `--------------------'   `---------------------'
+
+passVerbosity = 0  # Set to 1 to see debug output for pass 1 links, and 2 to see debug output for pass 2 links 
+
 firstGridOnRank = myRank * gridsPerRank
 for g in range(firstGridOnRank, (myRank+1) * gridsPerRank):
-  nextGridToConnect = int((nGrids - g + nHlPerPt - 1) % nGrids / nHlPerPt) * nHlPerPt
+  pass1NextGrid = (nGrids - g) % nGrids
+  pass2NextGrid = nGrids - g - 1
+
+  if passVerbosity > 0:
+    print("\n")
+    print("GRID ", g)
 
   for i in range(0,N):
     for j in range(0,N):
+      if args.verbose:
+        print("\n *", end="")
+
       ponger(g,i,j)
 
       if i+1 < N:
@@ -131,14 +173,25 @@ for g in range(firstGridOnRank, (myRank+1) * gridsPerRank):
         hyperLink(g,i,j, g,i,j+1, "port_e", "port_w")
 
       for x in range(0,nHlPerPt):
-        if nextGridToConnect > g or nextGridToConnect < firstGridOnRank:
-          hyperLink(g,i,j, nextGridToConnect,i,j, "port_%d" % (x), "port_%d" % (g % nHlPerPt))
-        nextGridToConnect = (nextGridToConnect + 1) % nGrids
+        if pass1NextGrid > g or pass1NextGrid < firstGridOnRank:
+          hyperLink(g,i,j, pass1NextGrid,i,j, "port_%d" % (x), "port_%d" % (x))
+          if passVerbosity == 1:
+            print(pass1NextGrid, " ", end="")
+        elif passVerbosity == 1:
+          print("-", " ", end="")
 
-print("Rank %3d nGrids=%8d numNonGhostComponents=%12d numGhostComponents=%14d" % (myRank, nGrids, numNumGhostComponents, numGhostPongers))
+        if pass2NextGrid > g or pass2NextGrid < firstGridOnRank:
+          hyperLink(g,i,j, pass2NextGrid,i,j, "port_%d" % (x + 100), "port_%d" % (x + 100), True)
+          if passVerbosity == 2:
+            print(pass2NextGrid, " ", end="")
+        elif passVerbosity == 2:
+          print("-", " ", end="")
+
+        pass1NextGrid = (pass1NextGrid + 1) % nGrids
+        pass2NextGrid = (pass2NextGrid - 1) % nGrids
+
 if(args.dryRun != -1):
+  endTime = time.time()
+  elapsedTime = endTime - startTime
+  print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
   sys.exit(1)
-
-endTime = time.time()
-elapsedTime = endTime - startTime
-print("Elapsed time on rank %i is %f secs" % (myRank, elapsedTime))
