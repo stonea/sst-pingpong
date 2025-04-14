@@ -21,7 +21,7 @@ args = parser.parse_args()
 # -----------------------------------------------------------------------------
 
 def oppositeDir(direction):
-  opposites = {'north': 'south', 'south': 'north', 'west' : 'east', 'east' : 'west'}
+  opposites = {'north': 'south', 'south': 'north', 'west': 'east', 'east': 'west'}
   return opposites[direction]
 
 numLinks = 0
@@ -101,7 +101,7 @@ if args.verbose:
   print("Initial balls --")
   for i in [0] if args.numDims == 1 else range(0,args.N):
     for j in range(0,args.N):
-      me = i * args.N + j;
+      me = i * args.N + j
       if me in ballsHeadingEastAt:  print("%5i %s" % (me, "east"))
       if me in ballsHeadingWestAt:  print("%5i %s" % (me, "west"))
       if me in ballsHeadingSouthAt: print("%5i %s" % (me, "south"))
@@ -109,23 +109,23 @@ if args.verbose:
 
 for i in range(0,args.N):
   for j in [0] if args.numDims == 1 else range(0,args.N):
-    me = i * args.N + j;
+    me = i * args.N + j
     ponger = sst.Component("pong_%i_%i" % (i,j), "pingpong.ponger")
     ponger.addParams({
       "ballsHeadingNorth": ballsHeadingNorthAt.get(me, 0),
       "ballsHeadingSouth": ballsHeadingSouthAt.get(me, 0),
       "ballsHeadingWest":  ballsHeadingWestAt.get(me, 0),
       "ballsHeadingEast":  ballsHeadingEastAt.get(me, 0)})
-    pingPongers[me] = ponger;
+    pingPongers[me] = ponger
 
 # i = row, j = col, (0,0) = north west corner
 for i in range(0,args.N):
   for j in [0] if args.numDims == 1 else range(0,args.N):
-    me = i * args.N + j;
+    me = i * args.N + j
     neighborS = me + args.N
     neighborE = me + 1
 
-    connectS = i < args.N-1 
+    connectS = i < args.N-1
     connectE = j < args.N-1 and args.numDims > 1
 
     if connectS:
