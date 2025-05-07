@@ -52,6 +52,9 @@ class Ponger : public SST::Component {
 #endif
 
   private:
+    void sendNorthPort(SST::Event *event);
+    void sendSouthPort(SST::Event *event);
+
     void handleNorthPort(SST::Event *ev);
     void handleSouthPort(SST::Event *ev);
     void handleWestPort(SST::Event *ev);

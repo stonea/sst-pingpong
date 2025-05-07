@@ -33,7 +33,9 @@ class Simulator : public SST::Component {
     SST_ELI_DOCUMENT_PARAMS(
       { "timeToRun",      "How long to run the simulation (in sec)", "100s" },
       { "verbose",        "Print verbose debugging output", "false" },
-      { "artificialWork", "Add an artificial delay to message processing", "0"}
+      { "artificialWork", "Add an artificial delay to message processing", "0"},
+
+      { "numberOfPongers", "", "0"}
     )
 
 #ifdef ENABLE_SSTDBG

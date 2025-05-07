@@ -42,6 +42,12 @@ Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   westPort  = configureLink("westPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleWestPort));
   eastPort  = configureLink("eastPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleEastPort));
 
+  static bool setCallbacks = false;
+  if(!setCallbacks) {
+//    SST::sst_setNorthPortFunc(&Ponger::handleNorthPort);
+//    SST::sst_setSouthPortFunc(&Ponger::handleSouthPort);
+    setCallbacks = true;
+  }
 
 #ifdef ENABLE_SSTDBG
   dbg = new SSTDebug(getName(),"./");
@@ -54,15 +60,34 @@ Ponger::~Ponger() {
 #endif
 }
 
+void Ponger::sendNorthPort(SST::Event *event) {
+  SST::Link *link = getLinkByName("northPort");
+  link->send(event);
+
+  if(SST::sst_useVirtualLinks()) {
+    delete link;
+  }
+}
+
+void Ponger::sendSouthPort(SST::Event *event) {
+  SST::Link *link = getLinkByName("southPort");
+  link->send(event);
+
+  if(SST::sst_useVirtualLinks()) {
+    delete link;
+  }
+}
+
+
 void Ponger::setup() {
   if(ballsHeadingNorth > 0) {
-         if(isPortConnected("northPort")) { northPort->send(new BallEvent(ballsHeadingNorth)); }
-    else if(isPortConnected("southPort")) { southPort->send(new BallEvent(ballsHeadingNorth)); }
+         if(isPortConnected("northPort")) { sendNorthPort(new BallEvent(ballsHeadingNorth)); }
+    else if(isPortConnected("southPort")) { sendSouthPort(new BallEvent(ballsHeadingNorth)); }
   }
 
   if(ballsHeadingSouth > 0) {
-         if(isPortConnected("southPort")) { southPort->send(new BallEvent(ballsHeadingSouth)); }
-    else if(isPortConnected("northPort")) { northPort->send(new BallEvent(ballsHeadingSouth)); }
+         if(isPortConnected("southPort")) { sendSouthPort(new BallEvent(ballsHeadingSouth)); }
+    else if(isPortConnected("northPort")) { sendNorthPort(new BallEvent(ballsHeadingSouth)); }
   }
 
   if(ballsHeadingWest > 0) {

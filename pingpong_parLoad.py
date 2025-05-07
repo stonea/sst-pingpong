@@ -58,8 +58,14 @@ if myRank == 0:
   ballGen = sst.Component("sim", "pingpong.simulator")
   ballGen.addParams({"timeToRun"      : args.timeToRun,
                      "verbose"        : args.verbose,
-                     "artificialWork" : args.artificialWork})
+                     "artificialWork" : args.artificialWork,
+
+                     "numberOfPongers" : args.N}
+                    )
+
   ballGen.setRank(0)
+
+print("NUM RANKS = ", numRanks, " MY RANK = ", myRank)
 
 pingPongers = {}
 ballsHeadingNorthAt = {}
@@ -78,9 +84,11 @@ SW_PONGER = args.N * (args.N-1)
 SE_PONGER = (args.N * args.N) - 1
 
 if args.corners:
-  ballsHeadingEastAt[NW_PONGER] = 1
-  ballsHeadingWestAt[NE_PONGER] = 1
-  if args.numDims > 1:
+  if args.numDims == 1:
+      ballsHeadingSouthAt[0] = 1
+      ballsHeadingNorthAt[args.N-1] = 1
+  else:
+      assert(args.numDims == 2)
       ballsHeadingEastAt[SW_PONGER] = 1
       ballsHeadingWestAt[SE_PONGER] = 1
       ballsHeadingSouthAt[NW_PONGER] = 1
@@ -183,7 +191,7 @@ for i in range(max(0,rankRowStart-1),rankRowEnd):
     neighborE = me + 1
 
     connectS = i < args.N-1
-    connectE = j < args.N-1 and args.numDims > 1
+    connectE = j < args.N-1 and args.numDims > 1 and i >= rankRowStart
 
     if connectS:
       link(i,j, pingPongers[me], pingPongers[neighborS], "south")

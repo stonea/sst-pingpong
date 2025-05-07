@@ -36,7 +36,10 @@ def link(x, y, direction):
 ballGen = sst.Component("sim", "pingpong.simulator")
 ballGen.addParams({"timeToRun"      : args.timeToRun,
                    "verbose"        : args.verbose,
-                   "artificialWork" : args.artificialWork})
+                   "artificialWork" : args.artificialWork,
+
+                   "numberOfPongers" : args.N,
+                   })
 
 pingPongers = []
 ballsHeadingNorthAt = {}
@@ -50,9 +53,13 @@ SW_PONGER = args.N * (args.N-1)
 SE_PONGER = (args.N * args.N) - 1
 
 if args.corners:
-  ballsHeadingEastAt[NW_PONGER] = 1
-  ballsHeadingWestAt[NE_PONGER] = 1
-  if args.numDims > 1:
+  if args.numDims == 1:
+      ballsHeadingSouthAt[0] = 1
+      ballsHeadingNorthAt[args.N-1] = 1
+  else:
+      assert(args.numDims == 2)
+      ballsHeadingEastAt[NW_PONGER] = 1
+      ballsHeadingWestAt[NE_PONGER] = 1
       ballsHeadingEastAt[SW_PONGER] = 1
       ballsHeadingWestAt[SE_PONGER] = 1
       ballsHeadingSouthAt[NW_PONGER] = 1
@@ -69,7 +76,11 @@ elif args.random != -1:
     elif direction == 3: ballsHeadingEastAt[r]  = 1
 elif args.randomOverlap != -1:
   for _ in range(args.randomOverlap):
-    r = random.randint(0, args.N * args.N - 1)
+    if args.numDims == 1:
+      r = random.randint(0, args.N - 1)
+    else:
+      assert(args.numDims == 2)
+      r = random.randint(0, args.N * args.N - 1)
     direction = random.randint(0,3)
     if direction   == 0: ballsHeadingNorthAt[r] = 1
     elif direction == 1: ballsHeadingSouthAt[r] = 1
