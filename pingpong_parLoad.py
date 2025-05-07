@@ -19,6 +19,7 @@ parser.add_argument('--artificialWork', type=int, default=0)
 parser.add_argument('--verbose',        default=False, action='store_true')
 parser.add_argument('--printTime',      default=False, action='store_true')
 group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument('--single',          default=False, action='store_true')
 group.add_argument('--corners',         default=False, action='store_true')
 group.add_argument('--random',          type=int, default=-1)
 group.add_argument('--randomOverlap',   type=int, default=-1)
@@ -77,16 +78,30 @@ NE_PONGER = args.N-1
 SW_PONGER = args.N * (args.N-1)
 SE_PONGER = (args.N * args.N) - 1
 
-if args.corners:
-  ballsHeadingEastAt[NW_PONGER] = 1
-  ballsHeadingWestAt[NE_PONGER] = 1
-  if args.numDims > 1:
-      ballsHeadingEastAt[SW_PONGER] = 1
-      ballsHeadingWestAt[SE_PONGER] = 1
-      ballsHeadingSouthAt[NW_PONGER] = 1
-      ballsHeadingSouthAt[NE_PONGER] = 1
-      ballsHeadingNorthAt[SW_PONGER] = 1
-      ballsHeadingNorthAt[SE_PONGER] = 1
+if args.single:
+  if args.numDims == 1:
+    ballsHeadingSouthAt[NW_PONGER] = 1
+  elif args.numDims == 2:
+    ballsHeadingEastAt[NW_PONGER] = 1
+  else:
+    print("Invalid configuration")
+    exit(1)
+elif args.corners:
+  if args.numDims == 1:
+    ballsHeadingSouthAt[NW_PONGER] = 1
+    ballsHeadingNorthAt[SW_PONGER] = 1
+  elif args.numDims == 2:
+    ballsHeadingEastAt[NW_PONGER] = 1
+    ballsHeadingWestAt[NE_PONGER] = 1
+    ballsHeadingEastAt[SW_PONGER] = 1
+    ballsHeadingWestAt[SE_PONGER] = 1
+    ballsHeadingSouthAt[NW_PONGER] = 1
+    ballsHeadingSouthAt[NE_PONGER] = 1
+    ballsHeadingNorthAt[SW_PONGER] = 1
+    ballsHeadingNorthAt[SE_PONGER] = 1
+  else:
+    print("Invalid configuration")
+    exit(1)
 elif args.random != -1:
   if args.numDims == 1:
     print("--random does not currently work with numDims=1. Use --randomOverlap.")
@@ -108,16 +123,17 @@ elif args.randomOverlap != -1:
     numBalls += args.randomOverlap % numRanks
   for _ in range(numBalls):
     if args.numDims == 1:
-      r = random.randint(0, (rankRowEnd - rankRowStart))
+      r = random.randint(0, (rankRowEnd - rankRowStart)-1)
       loc = (rankRowStart * args.N) + (r * args.N)
+      direction = random.randint(0,1)
     else:
       r = random.randint(0, numComponentsOwnedByRank - 1)
       loc = rankRowStart * args.N + r
-    direction = random.randint(0,3)
-    if direction   == 0: ballsHeadingNorthAt[loc] = 1
-    elif direction == 1: ballsHeadingSouthAt[loc] = 1
-    elif direction == 2: ballsHeadingWestAt[loc]  = 1
-    elif direction == 3: ballsHeadingEastAt[loc]  = 1
+      direction = random.randint(0,3)
+    if direction   == 0: ballsHeadingNorthAt[loc] = ballsHeadingNorthAt.get(loc, 0) + 1
+    elif direction == 1: ballsHeadingSouthAt[loc] = ballsHeadingSouthAt.get(loc, 0) + 1
+    elif direction == 2: ballsHeadingWestAt[loc]  = ballsHeadingWestAt.get(loc, 0) + 1
+    elif direction == 3: ballsHeadingEastAt[loc]  = ballsHeadingEastAt.get(loc, 0) + 1
 elif args.wavefront:
   if args.numDims == 1:
     print("--wavefront does not currently work with numDims=1. Use --randomOverlap.")

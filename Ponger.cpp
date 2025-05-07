@@ -7,17 +7,15 @@ using SST::Interfaces::StringEvent;
 
 class BallEvent : public SST::Event {
   public:
-    BallEvent() : SST::Event(), count(0) { }
-    BallEvent(int64_t cnt) : SST::Event(), count(cnt) { }
-    
-    int64_t count;
+    int64_t ballId;
 
+    BallEvent() : SST::Event(), ballId(0) { }
+    BallEvent(int64_t ballId) : SST::Event(), ballId(ballId) { }
+    
     void serialize_order(SST::Core::Serialization::serializer &ser)  override {
       Event::serialize_order(ser);
-      ser & count;
+      ser & ballId;
     }
-
-    // Register this event as serializable
     ImplementSerializable(BallEvent);
 };
 
@@ -42,7 +40,6 @@ Ponger::Ponger( SST::ComponentId_t id, SST::Params& params )
   westPort  = configureLink("westPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleWestPort));
   eastPort  = configureLink("eastPort",  new SST::Event::Handler<Ponger>(this, &Ponger::handleEastPort));
 
-
 #ifdef ENABLE_SSTDBG
   dbg = new SSTDebug(getName(),"./");
 #endif
@@ -55,24 +52,32 @@ Ponger::~Ponger() {
 }
 
 void Ponger::setup() {
+  static int64_t nextBallId = 0;
+
+  auto sendNTimes = [&](int n, SST::Link *link) {
+    for(int i = 0; i < n; i++) {
+      link->send(new BallEvent(nextBallId++));
+    }
+  };
+
   if(ballsHeadingNorth > 0) {
-         if(isPortConnected("northPort")) { northPort->send(new BallEvent(ballsHeadingNorth)); }
-    else if(isPortConnected("southPort")) { southPort->send(new BallEvent(ballsHeadingNorth)); }
+         if(isPortConnected("northPort")) { sendNTimes(ballsHeadingNorth, northPort); }
+    else if(isPortConnected("southPort")) { sendNTimes(ballsHeadingNorth, southPort); }
   }
 
   if(ballsHeadingSouth > 0) {
-         if(isPortConnected("southPort")) { southPort->send(new BallEvent(ballsHeadingSouth)); }
-    else if(isPortConnected("northPort")) { northPort->send(new BallEvent(ballsHeadingSouth)); }
+         if(isPortConnected("southPort")) { sendNTimes(ballsHeadingSouth, southPort); }
+    else if(isPortConnected("northPort")) { sendNTimes(ballsHeadingSouth, northPort); }
   }
 
   if(ballsHeadingWest > 0) {
-         if(isPortConnected("westPort")) { westPort->send(new BallEvent(ballsHeadingWest)); }
-    else if(isPortConnected("eastPort")) { eastPort->send(new BallEvent(ballsHeadingWest)); }
+         if(isPortConnected("westPort")) { sendNTimes(ballsHeadingWest, westPort); }
+    else if(isPortConnected("eastPort")) { sendNTimes(ballsHeadingWest, eastPort); }
   }
 
   if(ballsHeadingEast > 0) {
-         if(isPortConnected("eastPort")) { eastPort->send(new BallEvent(ballsHeadingEast)); }
-    else if(isPortConnected("westPort")) { westPort->send(new BallEvent(ballsHeadingEast)); }
+         if(isPortConnected("eastPort")) { sendNTimes(ballsHeadingEast, eastPort); }
+    else if(isPortConnected("westPort")) { sendNTimes(ballsHeadingEast, westPort); }
   }
 }
 
@@ -82,76 +87,41 @@ bool Ponger::tick( SST::Cycle_t currentCycle ) {
   return false;
 }
 
-void Ponger::handleNorthPort(SST::Event *ev) {
-  if(gVerbose) {
-    std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
-              << "vvvvvv " << getName() << std::endl;
-  }
-
+void Ponger::handlePort(
+  BallEvent *ev, const char *dirString, const char *portName,
+  SST::Link *portLink, const char *oppositePortName, SST::Link *oppositePortLink)
+{
+  int64_t ballId = ev->ballId;
   conductArtificialWork(gArtificialWork);
 
-  int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
-  if(isPortConnected("southPort")) {
-    southPort->send(new BallEvent(incomingBalls));
-  } else if(isPortConnected("northPort")) {
-    northPort->send(new BallEvent(incomingBalls));
+  if(gVerbose) {
+    std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
+              << dirString << getName() << " ballid=" << ballId << std::endl;
+  }
+
+  if(isPortConnected(oppositePortName)) {
+    oppositePortLink->send(new BallEvent(ballId));
+  } else if(isPortConnected(portName)) {
+    portLink->send(new BallEvent(ballId));
   }
 
   delete ev;
+}
+
+void Ponger::handleNorthPort(SST::Event *ev) {
+  handlePort(dynamic_cast<BallEvent*>(ev), "vvvvvv ", "northPort", northPort, "southPort", southPort);
 }
 
 void Ponger::handleSouthPort(SST::Event *ev) {
-  if(gVerbose) {
-    std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
-              << "^^^^^^ " << getName() << std::endl;
-  }
-
-  conductArtificialWork(gArtificialWork);
-
-  int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
-  if(isPortConnected("northPort")) {
-    northPort->send(new BallEvent(incomingBalls));
-  } else if(isPortConnected("southPort")) {
-    southPort->send(new BallEvent(incomingBalls));
-  }
-
-  delete ev;
+  handlePort(dynamic_cast<BallEvent*>(ev), "^^^^^^ ", "southPort", southPort, "northPort", northPort);
 }
 
 void Ponger::handleWestPort(SST::Event *ev) {
-  if(gVerbose) {
-    std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
-              << " -----> " << getName() << std::endl;
-  }
-
-  conductArtificialWork(gArtificialWork);
-
-  int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
-  if(isPortConnected("eastPort")) {
-    eastPort->send(new BallEvent(incomingBalls));
-  } else if(isPortConnected("westPort")) {
-    westPort->send(new BallEvent(incomingBalls));
-  }
-
-  delete ev;
+  handlePort(dynamic_cast<BallEvent*>(ev), "-----> ", "westPort", westPort, "eastPort", eastPort);
 }
 
 void Ponger::handleEastPort(SST::Event *ev) {
-  if(gVerbose) {
-    std::cout << std::setw(10) << getElapsedSimTime().toStringBestSI() << " | "
-              << getName() << " <-----" << std::endl;
-  }
-
-  conductArtificialWork(gArtificialWork);
-
-  int64_t incomingBalls = (dynamic_cast<BallEvent*>(ev))->count;
-  if(isPortConnected("westPort")) {
-    westPort->send(new BallEvent(incomingBalls));
-  } else if(isPortConnected("eastPort")) {
-    eastPort->send(new BallEvent(incomingBalls));
-  }
-
-  delete ev;
+  handlePort(dynamic_cast<BallEvent*>(ev), "-----> ", "eastPort", eastPort, "westPort", westPort);
 }
 
 #ifdef ENABLE_SSTDBG
