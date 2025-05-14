@@ -8,6 +8,8 @@
 #include <sst/dbg/SSTDebug.h>
 #endif
 
+class BallEvent;
+
 class Ponger : public SST::Component {
   public:
     Ponger( SST::ComponentId_t id, SST::Params& params );
@@ -52,6 +54,11 @@ class Ponger : public SST::Component {
 #endif
 
   private:
+    void handlePort(
+      BallEvent *ev, const char *dirString, const char *portName,
+      SST::Link *portLink, const char *oppositePortName,
+      SST::Link *oppositePortLink);
+
     void handleNorthPort(SST::Event *ev);
     void handleSouthPort(SST::Event *ev);
     void handleWestPort(SST::Event *ev);
