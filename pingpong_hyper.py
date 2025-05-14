@@ -125,11 +125,11 @@ if nGrids % numRanks != 0:
 
 if myRank == 0:
   print("Simulating %d, %dx%d grids" % (nGrids, N, N))
-  ballGen = sst.Component("sim", "pingpong.simulator")
-  ballGen.addParams({"timeToRun"      : args.timeToRun,
+  simulation = sst.Component("sim", "pingpong.simulator")
+  simulation.addParams({"timeToRun"      : args.timeToRun,
                      "verbose"        : args.verbose,
                      "artificialWork" : args.artificialWork})
-  ballGen.setRank(0)
+  simulation.setRank(0)
 
 # Consider if we have 400 2x2 grids, we assign inter-grid connections as
 # follows, where each * is a point in the 2x2 grid.  The number above each

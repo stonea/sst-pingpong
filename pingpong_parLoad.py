@@ -56,11 +56,11 @@ if myRank == 0:
   warnIfNotDivisibleByNumRanks(args.randomOverlap)
 
 if myRank == 0:
-  ballGen = sst.Component("sim", "pingpong.simulator")
-  ballGen.addParams({"timeToRun"      : args.timeToRun,
+  simulator = sst.Component("sim", "pingpong.simulator")
+  simulator.addParams({"timeToRun"      : args.timeToRun,
                      "verbose"        : args.verbose,
                      "artificialWork" : args.artificialWork})
-  ballGen.setRank(0)
+  simulator.setRank(0)
 
 pingPongers = {}
 ballsHeadingNorthAt = {}
