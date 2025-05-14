@@ -121,7 +121,7 @@ void Ponger::handleWestPort(SST::Event *ev) {
 }
 
 void Ponger::handleEastPort(SST::Event *ev) {
-  handlePort(dynamic_cast<BallEvent*>(ev), "-----> ", "eastPort", eastPort, "westPort", westPort);
+  handlePort(dynamic_cast<BallEvent*>(ev), "<----- ", "eastPort", eastPort, "westPort", westPort);
 }
 
 #ifdef ENABLE_SSTDBG
