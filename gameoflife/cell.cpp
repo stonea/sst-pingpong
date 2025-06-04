@@ -16,11 +16,9 @@ Cell::Cell( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
 {
   isAlive = params.find<bool>("isAlive", false);
-  evenTick = true;
   aliveNeighbors = 0;
 
   registerClock("2s",   new SST::Clock::Handler<Cell>(this, &Cell::clockTick));
-//  registerClock("10s", new SST::Clock::Handler<Cell>(this, &Cell::endSim));
 
   nwPort = configureLink("nwPort", new SST::Event::Handler<Cell>(this, &Cell::handleEvent));
   nPort  = configureLink("nPort",  new SST::Event::Handler<Cell>(this, &Cell::handleEvent));
@@ -45,7 +43,6 @@ void Cell::setup() {
 
 void Cell::handleEvent(SST::Event *ev) {
   aliveNeighbors += 1;
-
   delete ev;
 }
 
@@ -55,7 +52,6 @@ void Cell::update() {
   } else if(!isAlive && aliveNeighbors == 3) {
     isAlive = true;
   }
-
   aliveNeighbors = 0;
 }
 

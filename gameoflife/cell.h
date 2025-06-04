@@ -46,9 +46,8 @@ class Cell : public SST::Component {
     void report();
     void handleEvent(SST::Event *ev);
     bool clockTick(SST::Cycle_t currentCycle);
-//    bool endSim(SST::Cycle_t currentCycle);
 
-    bool isAlive, evenTick;
+    bool isAlive;
     int aliveNeighbors;
     SST::Link *nwPort, *nPort, *nePort, *wPort, *ePort, *swPort, *sPort, *sePort;
 };
