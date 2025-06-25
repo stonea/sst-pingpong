@@ -1,6 +1,6 @@
-# sst-pingpong
+# sst-benchmarks
 
-This repository contains files implementing a 1 or 2 dimensional ping-pong simulation and the scripts necessary to do scaling evaluation and profiling of the simulation. 
+This repository contains files implementing benchmarks using SST. Namely, a 1 or 2 dimensional ping-pong simulation and the scripts necessary to do scaling evaluation and profiling of the simulation. 
 The simulation code was prepared by Andy Stone and the submission/profiling scripts by Brandon Neth.
 
 Prior to running the benchmark, please compile the source files by running:
