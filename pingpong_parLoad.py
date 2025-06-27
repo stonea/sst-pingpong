@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(
   prog='SSTPingPong',
   description='Run a simulation consisting of several components arranged in a 1D or 2D grid that send messages back and forth')
 parser.add_argument('--N',              type=int, default=10)
+parser.add_argument('--M',              type=int, default=-1)
 parser.add_argument('--numDims',        type=int, choices=[1,2], default=2)
 parser.add_argument('--timeToRun',      type=int, default=200)
 parser.add_argument('--edgeDelay',      type=int, default=50)
@@ -26,6 +27,9 @@ group.add_argument('--randomOverlap',   type=int, default=-1)
 group.add_argument('--wavefront',       default=False, action='store_true')
 args = parser.parse_args()
 
+if args.M == -1:
+  args.M = args.N
+
 # -----------------------------------------------------------------------------
 
 def oppositeDir(direction):
@@ -39,12 +43,13 @@ def link(x,y, ponger1, ponger2, direction):
     print("on %d connect " % myRank, ponger1.getFullName(), direction, "--", ponger2.getFullName(), oppositeDir(direction))
   linkName = "link_%d_%d_%s" % (x,y,direction)
 
-  sst.Link(linkName).connect( (ponger1, "%sPort" % direction, "%is" % args.edgeDelay), (ponger2, "%sPort" % oppositeDir(direction), "%is" % args.edgeDelay) )
+  sst.Link(linkName).connect( (ponger1, "%sPort" % direction, "%i ps" % args.edgeDelay), (ponger2, "%sPort" % oppositeDir(direction), "%i ps" % args.edgeDelay) )
 
 # -----------------------------------------------------------------------------
 
-myRank   = sst.getMyMPIRank()
-numRanks = sst.getMPIRankCount()
+myRank     = sst.getMyMPIRank()
+numRanks   = sst.getMPIRankCount()
+numThreads = sst.getThreadCount()
 
 def warnIfNotDivisibleByNumRanks(random):
   if random != -1 and random % numRanks != 0:
@@ -55,12 +60,11 @@ if myRank == 0:
   warnIfNotDivisibleByNumRanks(args.random)
   warnIfNotDivisibleByNumRanks(args.randomOverlap)
 
-if myRank == 0:
-  simulator = sst.Component("sim", "pingpong.simulator")
-  simulator.addParams({"timeToRun"      : args.timeToRun,
+simulator = sst.Component("sim", "pingpong.simulator")
+simulator.addParams({"timeToRun"      : args.timeToRun,
                      "verbose"        : args.verbose,
                      "artificialWork" : args.artificialWork})
-  simulator.setRank(0)
+simulator.setRank(myRank)
 
 pingPongers = {}
 ballsHeadingNorthAt = {}
@@ -68,15 +72,16 @@ ballsHeadingSouthAt = {}
 ballsHeadingWestAt  = {}
 ballsHeadingEastAt  = {}
 
-rowsPerRank  = int(args.N / numRanks)
+rowsPerRank  = int(args.M / numRanks)
+colsPerRank  = int(args.N / numThreads)
 rankRowStart = myRank * rowsPerRank
-rankRowEnd   = args.N if myRank == numRanks-1 else rankRowStart + rowsPerRank
+rankRowEnd   = args.M if myRank == numRanks-1 else rankRowStart + rowsPerRank
 numComponentsOwnedByRank = (rankRowEnd - rankRowStart) * args.N;
 
 NW_PONGER = 0
 NE_PONGER = args.N-1
-SW_PONGER = args.N * (args.N-1)
-SE_PONGER = (args.N * args.N) - 1
+SW_PONGER = args.N * (args.M-1)
+SE_PONGER = (args.N * args.M) - 1
 
 if args.single:
   if args.numDims == 1:
@@ -135,25 +140,14 @@ elif args.randomOverlap != -1:
     elif direction == 2: ballsHeadingWestAt[loc]  = ballsHeadingWestAt.get(loc, 0) + 1
     elif direction == 3: ballsHeadingEastAt[loc]  = ballsHeadingEastAt.get(loc, 0) + 1
 elif args.wavefront:
-  if args.numDims == 1:
-    print("--wavefront does not currently work with numDims=1. Use --randomOverlap.")
-    exit(1)
-    if(myRank == 0):
-      for i in range(0,args.N):
-        ballsHeadingSouthAt[i] = 1
-    if(myRank == numRanks-1):
-      for i in range(0,args.N):
-        ballsHeadingNorthAt[args.N*(args.N-1)+i] = 1
-    for i in range(rankRowStart, rankRowEnd):
-      ballsHeadingEastAt[i*args.N] = 1
-      ballsHeadingWestAt[(i+1)*args.N-1] = 1
+  print("--wavefront does not currently work in this version.")
 else:
   print("Unknown ball placement configuration")
   exit(1)
 
 if args.verbose:
   print("Initial balls on rank %d --" % myRank)
-  for i in range(0,args.N):
+  for i in range(0,args.M):
     for j in [0] if args.numDims == 1 else range(0,args.N):
       me = i * args.N + j;
       if me in ballsHeadingEastAt:  print("%5i %4i %4i %s" % (me, i, j, "east"))
@@ -169,7 +163,10 @@ def makePonger(i,j,rank):
     "ballsHeadingSouth": ballsHeadingSouthAt.get(me, 0),
     "ballsHeadingWest":  ballsHeadingWestAt.get(me, 0),
     "ballsHeadingEast":  ballsHeadingEastAt.get(me, 0)})
-  ponger.setRank(rank)
+  if numThreads > 1:
+    ponger.setRank(rank, min(int(j/colsPerRank),numThreads-1))
+  else:
+    ponger.setRank(rank)
   pingPongers[me] = ponger;
 
 # top row of "ghost" pongers
@@ -198,7 +195,7 @@ for i in range(max(0,rankRowStart-1),rankRowEnd):
     neighborS = me + args.N
     neighborE = me + 1
 
-    connectS = i < args.N-1
+    connectS = i < args.M-1
     connectE = j < args.N-1 and args.numDims > 1
 
     if connectS:

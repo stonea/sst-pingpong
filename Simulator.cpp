@@ -11,7 +11,7 @@ Simulator::Simulator(SST::ComponentId_t id, SST::Params& params)
   gVerbose        = params.find<bool>   ("verbose",        false);
   gArtificialWork = params.find<int64_t>("artificialWork", 0);
 
-  registerClock(std::to_string(timeToRun) + "s", new SST::Clock::Handler<Simulator>(this, &Simulator::clockTick));
+  registerClock(std::to_string(timeToRun) + "ps", new SST::Clock::Handler<Simulator>(this, &Simulator::clockTick));
 
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();

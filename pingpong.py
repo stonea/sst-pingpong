@@ -29,7 +29,7 @@ def link(x, y, direction):
   global numLinks
   if args.verbose:
     print("connect ", x.getFullName(), direction, "--", y.getFullName(), oppositeDir(direction))
-  sst.Link("link%i" % numLinks).connect( (x, "%sPort" % direction, "%is" % args.edgeDelay), (y, "%sPort" % oppositeDir(direction), "%is" % args.edgeDelay) )
+  sst.Link("link%i" % numLinks).connect( (x, "%sPort" % direction, "%ips" % args.edgeDelay), (y, "%sPort" % oppositeDir(direction), "%ips" % args.edgeDelay) )
   numLinks += 1
 
 # -----------------------------------------------------------------------------
