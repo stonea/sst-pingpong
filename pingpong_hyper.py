@@ -100,7 +100,7 @@ def hyperLink(g1,i1,j1, g2,i2,j2, port1Name, port2Name, isPass2=False):
 
   linkName = "l%s%d_%d" % ('' if not isPass2 else 'b', minId, maxId)
   if args.dryRun == -1:
-    sst.Link(linkName).connect( (ponger1, port1Name, "%is" % args.edgeDelay), (ponger2, port2Name, "%is" % args.edgeDelay) )
+    sst.Link(linkName).connect( (ponger1, port1Name, "%ips" % args.edgeDelay), (ponger2, port2Name, "%ips" % args.edgeDelay) )
 
 def prevDivisor(x, y):
   while True:

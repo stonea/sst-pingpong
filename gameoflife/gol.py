@@ -20,7 +20,7 @@ if args.M == -1:
 
 # We do a block-row partitioning of the game board.  Because the number of rows
 # might not be divisible my the number of MPI ranks we will have ranks 0
-# throuhg (args.M%numRanks) have (args.M / numRanks + 1) rows # and all
+# through (args.M%numRanks) have (args.M / numRanks + 1) rows # and all
 # subsequent ranks will have (args.M / numRanks).  IOW we evenly divide as best
 # we can, and then add an extra row to the first (args.M%numRanks) to get us to
 # our desired game board size.
