@@ -9,12 +9,15 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--N', type=int, default=10, help='Height of grid (number of rows)')
 parser.add_argument('--M', type=int, default=10, help='Width of grid (number of columns)')
-parser.add_argument('--timeToRun', type=int, default=1000, help='ns to run the simulation')
+parser.add_argument('--timeToRun', type=str, default='1000ns', help='Time to run the simulation')
+parser.add_argument("--linkDelay", type=str, default="1ns", help="Delay for each link")
+parser.add_argument('--numRings', type=int, default=1, help='Number of rings of neighbors to connect to each component')
+
 args = parser.parse_args()
 N = args.N  # Number of rows
 M = args.M  # Number of columns
 timeToRun = args.timeToRun  # Time to run the simulation
-numRings = 1
+numRings = args.numRings
 
 comps = []
 # Create M by N grid
@@ -23,11 +26,10 @@ for i in range(N):
   for j in range(M):
     comp = sst.Component(f"comp_{i}_{j}", "phold.Node")
     comp.addParams({
-      "numRings": 1,
-      "numRows": N,
-      "numCols": M,
-      "row": i,
-      "col": j
+      "numRings": numRings,
+      "i": i,
+      "j": j,
+      "timeToRun": timeToRun
     })
     row.append(comp)
   comps.append(row)
@@ -65,7 +67,8 @@ def connect_upward(i,j,num_rings):
     print("Component at (%d, %d) connects to neighbor at (%d, %d)" % (i, j, neighbor_i, neighbor_j))
     port1 = port_num(i,j,neighbor_i,neighbor_j,num_rings)
     port2 = port_num(neighbor_i,neighbor_j,i,j,num_rings)
-    link = sst.Link()
+    link = sst.Link("link_%d_%d_to_%d_%d" % (i, j, neighbor_i, neighbor_j))
+    print("Ports: ", port1, " AND ", port2)
     link.connect((comps[i][j], f"port{port1}", "1ns"), (comps[neighbor_i][neighbor_j], f"port{port2}", "1ns"))
 
 

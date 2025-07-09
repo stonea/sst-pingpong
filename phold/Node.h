@@ -3,7 +3,7 @@
 
 #include <sst/core/component.h>
 #include <sst/core/link.h>
-
+#include <random>
 #ifdef ENABLE_SSTDBG
 #include <sst/dbg/SSTDebug.h>
 #endif
@@ -22,6 +22,7 @@ class Node : public SST::Component {
 
     void handleEvent(SST::Event *ev);
 
+    size_t movementFunction();
     // Register the component
     SST_ELI_REGISTER_COMPONENT(
       Node,   // class
@@ -34,7 +35,9 @@ class Node : public SST::Component {
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-     { "numRings", "number of rings to connect to", "1" }
+     { "numRings", "number of rings to connect to", "1" },
+     { "i", "My row index", "-1" },
+     { "j", "My column index", "-1" }
     )
 
     SST_ELI_DOCUMENT_PORTS(
@@ -49,6 +52,12 @@ class Node : public SST::Component {
     std::vector<SST::Link*> links;
     int numRings;
     int numLinks;
+    int myRow,myCol;
+    std::string timeToRun;
+    int recvCount;
+    std::mt19937 rng;
+    std::uniform_int_distribution<int> dist;
+
 
 #ifdef ENABLE_SSTDBG
     SSTDebug *dbg;
