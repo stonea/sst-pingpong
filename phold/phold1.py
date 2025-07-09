@@ -12,7 +12,8 @@ parser.add_argument('--M', type=int, default=10, help='Width of grid (number of 
 parser.add_argument('--timeToRun', type=str, default='1000ns', help='Time to run the simulation')
 parser.add_argument("--linkDelay", type=str, default="1ns", help="Delay for each link")
 parser.add_argument('--numRings', type=int, default=1, help='Number of rings of neighbors to connect to each component')
-
+parser.add_argument('--eventDensity', type=float, default=0.1, help="How many events to transmit per component.")
+parser.add_argument('--exponentMultiplier', type=float, default=1.0, help="Multiplier for exponential distribution of event generation")
 args = parser.parse_args()
 N = args.N  # Number of rows
 M = args.M  # Number of columns
@@ -29,7 +30,9 @@ for i in range(N):
       "numRings": numRings,
       "i": i,
       "j": j,
-      "timeToRun": timeToRun
+      "timeToRun": timeToRun,
+      "multiplier": args.exponentMultiplier,
+      "eventDensity": args.eventDensity
     })
     row.append(comp)
   comps.append(row)
@@ -64,11 +67,11 @@ def connect_upward(i,j,num_rings):
 
     if neighbor_i < 0 or neighbor_i >= N or neighbor_j < 0 or neighbor_j >= M:
       continue
-    print("Component at (%d, %d) connects to neighbor at (%d, %d)" % (i, j, neighbor_i, neighbor_j))
+    #print("Component at (%d, %d) connects to neighbor at (%d, %d)" % (i, j, neighbor_i, neighbor_j))
     port1 = port_num(i,j,neighbor_i,neighbor_j,num_rings)
     port2 = port_num(neighbor_i,neighbor_j,i,j,num_rings)
     link = sst.Link("link_%d_%d_to_%d_%d" % (i, j, neighbor_i, neighbor_j))
-    print("Ports: ", port1, " AND ", port2)
+    #print("Ports: ", port1, " AND ", port2)
     link.connect((comps[i][j], f"port{port1}", "1ns"), (comps[neighbor_i][neighbor_j], f"port{port2}", "1ns"))
 
 
@@ -79,9 +82,9 @@ for i in range(N):
     
     my_idx = grid_idx(i,j)
     connect_upward(i,j,numRings)
-    #print_indices(i,j,numRings)
                                
-      
+
+
 
 
   

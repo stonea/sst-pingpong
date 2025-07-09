@@ -6,25 +6,25 @@
 Node::Node( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
 {
-  std::cout << "initializing Node\n" << std::flush;
   numRings = params.find<int>("numRings");
   
   myCol = params.find<int>("j", 1);
   myRow = params.find<int>("i", 1);
+  rowCount = params.find<int>("rowCount", -1);
+  colCount = params.find<int>("colCount", -1);
+  myId = myRow * colCount + myCol;
   timeToRun = params.find<std::string>("timeToRun");
-  
+  eventDensity = params.find<double>("eventDensity");
+
   recvCount = 0;
   numLinks = (2*numRings+1) * (2*numRings+1);
   
-  rng = std::mt19937(0);
-  dist = std::uniform_int_distribution<int>(0, numLinks-1);
+  rng = std::mt19937(myId);
+  uid = std::uniform_int_distribution<int>(0, numLinks-1);
+  urd = std::uniform_real_distribution<double>(0.0,1.0);
 
   links = std::vector<SST::Link*>(numLinks);
-  for (int i = 0; i < numLinks; ++i) {
-    std::string portName = "port" + std::to_string(i);
-    std::cout << "port name: " << portName << "\n";
-    links[i] = configureLink(portName, new SST::Event::Handler<Node>(this, &Node::handleEvent));
-  }
+  setupLinks<Node>();
 
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();
@@ -38,41 +38,78 @@ Node::~Node() {
 }
 
 void Node::setup() {
-  std::cout << "Node::setup on " << myRow << " " << myCol << "\n" << std::flush;
-  for(int i = 0; i < links.size(); i++) {
-    std::cout << "sending amessage on link " << i << "\n" << std::flush;
-    if (links.at(i) != nullptr) {
-      std::cout << "Link " << i << " is valid\n" << std::flush;
-      auto ev = new SST::Event();
-      std::cout << "created event\n" << std::flush;
-      links.at(i)->send(ev);
+  double counter = eventDensity;
+
+  while (counter >= 1.0) {
+    auto ev = new SST::Interfaces::StringEvent();
+    auto recipient = movementFunction();
+    while (links.at(recipient) == nullptr) {
+      recipient = movementFunction();
     }
+    links.at(recipient)->send(ev);
+    counter -= 1.0;
   }
-  std::cout << "Node::setup done\n" << std::flush;
+
+  // At this point, we have counter between 0 and 1. 
+  // Thus, every 1/counter components should get an extra event  
+  int period = 1.0 / counter;
+  if (myId % period == 0) {
+    auto ev = new SST::Interfaces::StringEvent();
+    auto recipient = movementFunction();
+    while (links.at(recipient) == nullptr) {
+      recipient = movementFunction();
+    }
+    links.at(recipient)->send(ev);
+  }
 }
 
 void Node::finish() { 
-  std::cout << "Component at " << myRow << "," << myCol << " processed " << recvCount << " messages\n";
+  //std::cout << "Component at " << myRow << "," << myCol << " processed " << recvCount << " messages\n";
+  std::string msg = std::to_string(myRow) + "," + std::to_string(myCol) + ":" + std::to_string(recvCount) + "\n";
+  std::cout << msg;
 }
 
 bool Node::tick( SST::Cycle_t currentCycle ) {
-  std::cout << "Ticking at " << currentCycle << "\n";
   primaryComponentOKToEndSim();
   return false;
 }
 
 void Node::handleEvent(SST::Event *ev){
-  std::cout << "Handling event from component\n";
+  delete ev;
+  static SST::TimeConverter * ps = getTimeConverter("1ps");
+#ifdef SSTDEBUG
+  std::cout << "Handling event at component " << myRow << "," << myCol << " with timestamp " << ev->getDeliveryTime() << "\n";
+#endif
   recvCount += 1;
 
   size_t nextRecipientLinkId = movementFunction();
-
   while (links.at(nextRecipientLinkId) == nullptr) {
     nextRecipientLinkId = movementFunction();
   }
-  links[nextRecipientLinkId]->send(ev);
+
+  SST::SimTime_t psDelay = timestepIncrementFunction();
+  links[nextRecipientLinkId]->send(psDelay, ps, new SST::Interfaces::StringEvent());
 }
   
 size_t Node::movementFunction() {
-  return dist(rng);
+  return uid(rng);
+}
+
+// Base class has no additional delay.
+SST::SimTime_t Node::timestepIncrementFunction() {
+  return 0;
+}
+
+
+ExponentialNode::ExponentialNode(SST::ComponentId_t id, SST::Params& params )
+  : Node(id, params) {
+  multiplier = params.find<double>("multiplier");
+  setupLinks<ExponentialNode>();
+}
+
+
+SST::SimTime_t ExponentialNode::timestepIncrementFunction() {
+  auto v = -1.0 * log(urd(rng));
+  // The 1000 is to convert to ps
+  return v*multiplier*1000;
 }
