@@ -24,18 +24,8 @@ class Node : public SST::Component {
 
     void handleEvent(SST::Event *ev);
 
-    size_t movementFunction();
-    
+    virtual size_t movementFunction();
     virtual SST::SimTime_t timestepIncrementFunction();
-
-
-    template<typename T>
-    void setupLinks() {
-      for (int i = 0; i < links.size(); i++) {
-        std::string portName = "port" + std::to_string(i);
-        links[i] = configureLink(portName, new SST::Event::Handler<T>(dynamic_cast<T*>(this), &T::handleEvent));
-      }
-    }
 
     // Register the component
     SST_ELI_REGISTER_COMPONENT(
@@ -43,7 +33,7 @@ class Node : public SST::Component {
       "phold",   // element library
       "Node", // component
       SST_ELI_ELEMENT_VERSION( 1, 0, 0 ),
-      "component that takes balls from its neighbors and passes along. If there's no neighbor to pass to, bounce back",
+      "Base component for PHOLD benchmark. Each component sends messages to neighbors using the movement and timestep increment functions.",
       COMPONENT_CATEGORY_UNCATEGORIZED
     )
 
@@ -61,27 +51,29 @@ class Node : public SST::Component {
     SST_ELI_DOCUMENT_PORTS(
       {"port%d", "Ports to others", {}}
     )
-    
 
+    template<typename T>
+    void setupLinks() {
+      for (int i = 0; i < links.size(); i++) {
+        std::string portName = "port" + std::to_string(i);
+        links[i] = configureLink(portName, new SST::Event::Handler<T>(dynamic_cast<T*>(this), &T::handleEvent));
+      }
+    }
 
-#ifdef ENABLE_SSTDBG
-    void printStatus(SST::Output& out) override;
-#endif
+    int myId, myRow, myCol;
     std::vector<SST::Link*> links;
-    int myId;
-    int numRings;
-    int numLinks;
-    int myRow,myCol;
-    int rowCount, colCount;
+    int numRings, numLinks, rowCount, colCount;
+    double eventDensity;
     std::string timeToRun;
+
     int recvCount;
+
     std::mt19937 rng;
     std::uniform_int_distribution<int> uid;
     std::uniform_real_distribution<double> urd;
-
-    double eventDensity;
-
+    
 #ifdef ENABLE_SSTDBG
+    void printStatus(SST::Output& out) override;
     SSTDebug *dbg;
 #endif
 };
@@ -97,20 +89,41 @@ class ExponentialNode : public Node {
       "phold",   // element library
       "ExponentialNode", // component
       SST_ELI_ELEMENT_VERSION( 1, 0, 0 ),
-      "component that takes balls from its neighbors and passes along. If there's no neighbor to pass to, bounce back",
+      "PHOLD node that uses an exponential distribution for its timestep increment function.",
       COMPONENT_CATEGORY_UNCATEGORIZED
     )
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-     { "multiplier", "Multiplier for exponential distribution, in ns", "1ns"}
-    )
-
-    SST_ELI_DOCUMENT_PORTS(
-      {"port%d", "Ports to others", {}}
+     { "multiplier", "Multiplier for exponential distribution, in ns", "1"}
     )
 
     double multiplier;
 };
 
+
+class UniformNode: public Node {
+  public:
+    UniformNode(SST::ComponentId_t id, SST::Params& params);
+    SST::SimTime_t timestepIncrementFunction() override;
+    
+    SST_ELI_REGISTER_COMPONENT(
+      UniformNode,   // class
+      "phold",   // element library
+      "UniformNode", // component
+      SST_ELI_ELEMENT_VERSION( 1, 0, 0 ),
+      "PHOLD node that uses a uniform distribution for its timestep increment function.",
+      COMPONENT_CATEGORY_UNCATEGORIZED
+    )
+
+    // Parameter name, description, default value
+    SST_ELI_DOCUMENT_PARAMS(
+      { "min", "Minimum value for uniform distribution, in ns, in addition to link delay", "0"},
+      { "max", "Maximum value for uniform distribution, in ns, in addition to link delay", "10"}
+    )
+
+    double min, max;
+
+
+};
 #endif

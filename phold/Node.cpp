@@ -66,7 +66,7 @@ void Node::setup() {
 void Node::finish() { 
   //std::cout << "Component at " << myRow << "," << myCol << " processed " << recvCount << " messages\n";
   std::string msg = std::to_string(myRow) + "," + std::to_string(myCol) + ":" + std::to_string(recvCount) + "\n";
-  std::cout << msg;
+  std::cerr << msg;
 }
 
 bool Node::tick( SST::Cycle_t currentCycle ) {
@@ -112,4 +112,18 @@ SST::SimTime_t ExponentialNode::timestepIncrementFunction() {
   auto v = -1.0 * log(urd(rng));
   // The 1000 is to convert to ps
   return v*multiplier*1000;
+}
+
+UniformNode::UniformNode(SST::ComponentId_t id, SST::Params& params )
+  : Node(id, params) {
+  min = params.find<double>("min");
+  max = params.find<double>("max");
+  setupLinks<UniformNode>();
+}
+
+SST::SimTime_t UniformNode::timestepIncrementFunction() {
+  auto v = urd(rng);
+  auto increment = min + (max - min) * v;
+  // The 1000 is to convert to ps
+  return increment * 1000;
 }
