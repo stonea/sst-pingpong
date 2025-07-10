@@ -56,3 +56,4 @@ if __name__ == "__main__":
       if not args.dry_run:
         print(f"Running: {command}")
         subprocess.run(command, shell=True, check=True)
+      
