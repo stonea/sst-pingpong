@@ -47,7 +47,7 @@ void OnDemandCell::handleEvent(SST::Event *ev) {
  if(!clockOn) {
     clockOn = true;
     reregisterClock(clockTc, clockHandler);
-  }*
+  }
   aliveNeighbors += 1;
   delete ev;
 }
