@@ -4,11 +4,13 @@ import argparse, random
 parser = argparse.ArgumentParser(
   prog='GameOfLife',
   description="Conway's Game-Of-Life")
-parser.add_argument('--N',            type=int, default=10)
-parser.add_argument('--M',            type=int, default=-1)
-parser.add_argument('--prob',         type=int, default=30)
-parser.add_argument('--stop-at',      default="5s")
-parser.add_argument('--onDemandMode', default=False, action='store_true')
+parser.add_argument('--N',               type=int, default=10)
+parser.add_argument('--M',               type=int, default=-1)
+parser.add_argument('--prob',            type=int, default=30)
+parser.add_argument('--stop-at',         default="5s")
+parser.add_argument('--onDemandMode',    default=False, action='store_true')
+parser.add_argument('--postOnlyIfAlive', default=False, action='store_true')
+parser.add_argument('--verbose',         default=False, action='store_true')
 args = parser.parse_args()
 
 sst.setProgramOption("stop-at", args.stop_at)
@@ -84,7 +86,9 @@ for row in range(max(0,myRowStart-1), min(args.M,myRowEnd+2)):
     else:
       cell.setRank(myRank)
       rval = random.randint(0,100)
-      cell.addParams({"isAlive": rval <= args.prob})
+      cell.addParams({"isAlive":      rval <= args.prob,
+                      "postIfDead":   not args.postOnlyIfAlive,
+                      "shouldReport": args.verbose})
 
 # Create links for all components owned by this rank
 for row in range(max(0,myRowStart), min(args.M,myRowEnd+1)):

@@ -23,7 +23,9 @@ class Cell : public SST::Component {
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-     { "isAlive", "Indicates if space has a cell (is alive)", "true" }
+     { "isAlive",      "Indicates if space has a cell (is alive)", "true" },
+     { "postIfDead",   "Indicates the space should post a message to neighbor even if dead", "true" },
+     { "shouldReport", "Print progress as conducting the simulation", "false" }
     )
 
     // Port name, description, event type
