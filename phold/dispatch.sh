@@ -7,17 +7,17 @@ nodeCount=$1
 width=$2
 height=$3
 eventDensity=$4
-timeToRun=$5
-prefix=$6
+ringSize=$5
+timeToRun=$6
+prefix=$7
 
 tmpFile=${prefix}.tmp
 timeFile=${prefix}.time
 outFile=${prefix}.err
 outDir=${prefix}_dir
-rm $timeFile
-touch $timeFile
 
-simFlags="--N $width --M $height --eventDensity $eventDensity --timeToRun ${timeToRun}ns"
+
+simFlags="--N $height --M $width --eventDensity $eventDensity --timeToRun ${timeToRun}ns --numRings $ringSize"
 
 sstFlags="--print-timing-info=true --parallel-load=SINGLE ${scriptDir}/phold_dist.py"
 
@@ -26,7 +26,8 @@ srunPortion="srun -N $nodeCount"
 
 mkdir $outDir
 cd $outDir
-
+rm $timeFile
+touch $timeFile
 $srunPortion sst $sstFlags -- $simFlags 1> $tmpFile 2> $outFile
 
 grep "Build time:" $tmpFile | awk '{print $3}' > $timeFile
