@@ -5,7 +5,6 @@ my_rank     = sst.getMyMPIRank()
 num_ranks   = sst.getMPIRankCount()
 num_threads = sst.getThreadCount()
 
-
 parser = argparse.ArgumentParser(
   prog='PHOLD',
   description='Run a simulation of the PHOLD benchmark.')
@@ -21,6 +20,14 @@ parser.add_argument('--nodeType', type=str, default='phold.Node', help='Type of 
 args = parser.parse_args()
 
 
+def row_to_rank(i):
+  if i < 0 or i >= args.N:
+    raise ValueError(f"Row index {i} is out of bounds for N={args.N}")
+  # Calculate the rank based on the row index
+  return min(i // rows_per_rank, num_ranks - 1)
+
+
+
 rows_per_rank = args.N // num_ranks
 
 comps = []
@@ -32,6 +39,8 @@ my_row_end = my_row_start + rows_per_rank #exclusive
 if my_rank == num_ranks - 1:  # Last rank gets the rest
   my_row_end = args.N
 
+
+
 for i in range(my_row_start, my_row_end):
   row = []
   for j in range(args.M):
@@ -40,13 +49,18 @@ for i in range(my_row_start, my_row_end):
       "numRings": args.numRings,
       "i": i,
       "j": j,
+      'colCount': args.M,
+      "rowCount": args.N,
       "timeToRun": args.timeToRun,
       "multiplier": args.exponentMultiplier,
       "eventDensity": args.eventDensity
     })
-    comp.setRank(my_rank)
+
+    comp.setRank(row_to_rank(i))
     row.append(comp)
   comps.append(row)
+
+low_rows = []
 
 # Create low ghost components
 low_ghost_start = max(0,my_row_start - args.numRings)
@@ -59,13 +73,16 @@ for i in range(low_ghost_start, low_ghost_end):
       "numRings": args.numRings,
       "i": i,
       "j": j,
+      'colCount': args.M,
+      "rowCount": args.N,
       "timeToRun": args.timeToRun,
       "multiplier": args.exponentMultiplier,
       "eventDensity": args.eventDensity
     })
-    comp.setRank(my_rank-1)
+    comp.setRank(row_to_rank(i))
     row.append(comp)
-  comps = [row] + comps 
+  low_rows.append(row)
+comps = low_rows + comps
 
 # Create high ghost components
 high_ghost_start = my_row_end
@@ -84,9 +101,12 @@ for i in range(high_ghost_start, high_ghost_end):
       "multiplier": args.exponentMultiplier,
       "eventDensity": args.eventDensity
     })
-    comp.setRank(my_rank+1)
+    comp.setRank(row_to_rank(i))
+
     row.append(comp)
   comps.append(row)
+
+
 
 
 def port_num(i,j,i2,j2, num_rings):
@@ -96,9 +116,11 @@ def port_num(i,j,i2,j2, num_rings):
   ip = num_rings - di
   jp = num_rings - dj
   return ip * side_length + jp
-
+ 
+linkCount = 0
 
 def connect_upwards(local_i, local_j, num_rings):
+  global linkCount
   my_idx = ((num_rings * 2 + 1) ** 2 - 1) // 2 # port number for self connect
   high_idx = (num_rings * 2 + 1) ** 2 - 1 # port number for highest connect
 
@@ -127,9 +149,18 @@ def connect_upwards(local_i, local_j, num_rings):
     neighbor_global_i = low_ghost_start + neighbor_i
     neighbor_global_j = neighbor_j
 
-    link = sst.Link(f"link_{my_global_i}_{my_global_j}_to_{neighbor_global_i}_{neighbor_global_j}")
+    # Only need the links that connect to a component that lives on this rank
+    if row_to_rank(my_global_i) != my_rank and row_to_rank(neighbor_global_i) != my_rank:
+      continue
+  
+    link_name = f"link_{my_global_i}_{my_global_j}_to_{neighbor_global_i}_{neighbor_global_j}"
+    link = sst.Link(link_name)
     link.connect((comps[local_i][local_j], f"port{port1}", args.linkDelay), 
                  (comps[neighbor_i][neighbor_j], f"port{port2}", args.linkDelay))
+    if port1 == port2:
+      linkCount += 1
+    else:
+      linkCount += 2
 
     
 
@@ -140,5 +171,4 @@ for local_i in range(len(comps)):
   for local_j in range(args.M):
     connect_upwards(local_i, local_j, args.numRings)
 
-
-
+print("Created %d links" % linkCount)

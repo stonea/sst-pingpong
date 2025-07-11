@@ -6,12 +6,17 @@
 Node::Node( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
 {
+  //std::cout << "initializing node on rank " << getRank().rank << " and id " << id << "\n" << std::flush;
   numRings = params.find<int>("numRings");
   
-  myCol = params.find<int>("j", 1);
-  myRow = params.find<int>("i", 1);
+  myCol = params.find<int>("j", -1);
+  myRow = params.find<int>("i", -1);
   rowCount = params.find<int>("rowCount", -1);
   colCount = params.find<int>("colCount", -1);
+  if (myCol == -1) {std::cerr << "WARNING: Failed to get myCol\n";}
+  if (myRow == -1) {std::cerr << "WARNING: Failed to get myRow\n";}
+  if (rowCount == -1) {std::cerr << "WARNING: Failed to get rowCount\n";}
+  if (colCount == -1) {std::cerr << "WARNING: Failed to get colCount\n";}
   myId = myRow * colCount + myCol;
   timeToRun = params.find<std::string>("timeToRun");
   eventDensity = params.find<double>("eventDensity");
@@ -24,11 +29,13 @@ Node::Node( SST::ComponentId_t id, SST::Params& params )
   urd = std::uniform_real_distribution<double>(0.0,1.0);
 
   links = std::vector<SST::Link*>(numLinks);
+  
   setupLinks<Node>();
 
   registerAsPrimaryComponent();
   primaryComponentDoNotEndSim();
   registerClock(timeToRun, new SST::Clock::Handler<Node>(this, &Node::tick));
+  //std::cout << "Done initalizing component " << id << " on rank " <<getRank().rank << "\n" << std::flush;
 }
 
 Node::~Node() {
@@ -38,6 +45,9 @@ Node::~Node() {
 }
 
 void Node::setup() {
+  std::cout << "Setting up node on rank " << getRank().rank
+            << " at position (" << myRow << "," << myCol << ") with ID " 
+            << myId << "\n" << std::flush;
   double counter = eventDensity;
 
   while (counter >= 1.0) {

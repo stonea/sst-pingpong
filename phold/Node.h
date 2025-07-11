@@ -54,10 +54,19 @@ class Node : public SST::Component {
 
     template<typename T>
     void setupLinks() {
+      //std::cout << "setting up links on rank " << getRank().rank << "...\n" << std::flush;
       for (int i = 0; i < links.size(); i++) {
         std::string portName = "port" + std::to_string(i);
         links[i] = configureLink(portName, new SST::Event::Handler<T>(dynamic_cast<T*>(this), &T::handleEvent));
+        if (links[i] == nullptr) {
+          //std::cerr << "Failed to configure link " << portName << " on rank " << getRank().rank << " id " << myId << "\n" << std::flush;
+        }
+        else {
+          //std::cout << "Configured link " << portName << " on rank " << getRank().rank << " id " << myId << "\n" << std::flush;
+        }
       }
+      //std::cout << "link size: " << links.size();
+      //std::cout << "done setting up links on rank " << getRank().rank << "\n" << std::flush;
     }
 
     int myId, myRow, myCol;

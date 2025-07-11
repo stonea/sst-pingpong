@@ -14,7 +14,10 @@ libphold.so: $(SRCS)
 install:
 	sst-register phold phold_LIBDIR=$(CURDIR)
 
+dataclean:
+	 rm -r *_dir *.out
+
 clean:
 	rm -rf tests/graphs libphold.so
 	sst-register -u phold
-	rm *.json *.tmp *.time *.out
+	rm -r *.json *.tmp *.time *.out 
