@@ -3,6 +3,7 @@ import argparse
 import itertools
 import subprocess
 import os
+import random
 
 working_dir = os.getcwd()
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -26,13 +27,14 @@ def parse_arguments():
 
   parser.add_argument('--widths', '--width', type=int_list, help="List of widths to use for the benchmark, e.g., '100 200 250'", required=True)
   parser.add_argument('--heights', '--height', type=int_list, help="List of heights to use for the benchmark, e.g., '100 200 250'. The grid is distributed over this dimension.", required=True)
-  parser.add_argument('--event_densities', '--event-densities', type=float_list, help="List of event densities to use for the benchmark, e.g., '0.1 0.5 10'", required=True)
-  parser.add_argument('--times_to_run', '--times-to-run',type=int_list, help="List of times to run the benchmark, in nanoseconds, e.g., '1 1000 2500'", required=True)
-  parser.add_argument('--ring_sizes', '--ring-sizes' , type=int_list, default=[1], help="How many rings of neighboring components each component should connect to, e.g., '1 2 4'. Default is [1].")
-  parser.add_argument('--dry-run' , action='store_true', help="If set, only print the commands that would be run without executing them.")
+  parser.add_argument('--event_densities', '--event-densities', '--event-density', type=float_list, help="List of event densities to use for the benchmark, e.g., '0.1 0.5 10'", required=True)
+  parser.add_argument('--times_to_run', '--times-to-run', '--time-to-run',type=int_list, help="List of times to run the benchmark, in nanoseconds, e.g., '1 1000 2500'", required=True)
+  parser.add_argument('--ring_sizes', '--ring-sizes', '--ring-size', type=int_list, default=[1], help="How many rings of neighboring components each component should connect to, e.g., '1 2 4'. Default is [1].")
+  parser.add_argument('--dry_run', '--dry-run', action='store_true', help="If set, only print the commands that would be run without executing them.")
   parser.add_argument('--name', type=str, default="phold", help="(Optional) Name of the benchmark job prepended to output files.")
   parser.add_argument('--weak_scaling', '--weak', '--weak-scaling', action='store_true', help="If set, use weak scaling. The height will be multiplied by the node count to maintain the per-node linking.")
-
+  parser.add_argument('--stochastic', type=int, help="If set, treat the arguments to this script as integer constants or range bounds, \
+                      rather than lists of values. The value of this variable is the number of points in the resulting space to sample.")
   args = parser.parse_args()
   return args
 
@@ -44,8 +46,33 @@ if __name__ == "__main__":
   subprocess.run("make", shell=True, check=True)
   os.chdir(working_dir)
 
+  if args.stochastic:
+    
+    # Turn the single values into ranges with a single element
+    if len(args.node_counts) == 1:
+      args.node_counts = [args.node_counts[0]] * 2
+    if len(args.widths) == 1:
+      args.widths = [args.widths[0]] * 2
+    if len(args.heights) == 1:
+      args.heights = [args.heights[0]] * 2
+    if len(args.event_densities) == 1:
+      args.event_densities = [args.event_densities[0]] * 2
+    if len(args.ring_sizes) == 1:
+      args.ring_sizes = [args.ring_sizes[0]] * 2
+    if len(args.times_to_run) == 1:
+      args.times_to_run = [args.times_to_run[0]] * 2
 
-  for (node_count, width, height, event_density, ring_size, time_to_run) in itertools.product(args.node_counts, args.widths, args.heights, args.event_densities, args.ring_sizes, args.times_to_run):
+    print(args.node_counts, args.widths, args.heights, args.event_densities, args.ring_sizes, args.times_to_run)
+    parameter_space = []
+    for i in range(args.stochastic):
+      density = round(random.uniform(*args.event_densities), 2)
+      point = (random.randint(*args.node_counts), random.randint(*args.widths), random.randint(*args.heights), density, random.randint(*args.ring_sizes), random.randint(*args.times_to_run))
+      print(f"Generated stochastic point: {point}")
+      parameter_space.append(point)
+  else:
+    parameter_space = itertools.product(args.node_counts, args.widths, args.heights, args.event_densities, args.ring_sizes, args.times_to_run)
+
+  for (node_count, width, height, event_density, ring_size, time_to_run) in parameter_space:
       if args.weak_scaling:
         height *= node_count
       

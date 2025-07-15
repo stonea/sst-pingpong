@@ -170,5 +170,3 @@ def connect_upwards(local_i, local_j, num_rings):
 for local_i in range(len(comps)):
   for local_j in range(args.M):
     connect_upwards(local_i, local_j, args.numRings)
-
-print("Created %d links" % linkCount)

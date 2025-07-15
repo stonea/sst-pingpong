@@ -45,9 +45,6 @@ Node::~Node() {
 }
 
 void Node::setup() {
-  std::cout << "Setting up node on rank " << getRank().rank
-            << " at position (" << myRow << "," << myCol << ") with ID " 
-            << myId << "\n" << std::flush;
   double counter = eventDensity;
 
   while (counter >= 1.0) {
