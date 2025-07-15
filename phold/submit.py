@@ -77,7 +77,7 @@ if __name__ == "__main__":
     for i in range(args.stochastic):
       density = round(random.uniform(*args.event_densities), 2)
       point = (random.randint(*args.node_counts), random.randint(*args.widths), random.randint(*args.heights), 
-              density, random.randint(*args.ring_sizes), random.randint(*args.times_to_run), random.randomint(*args.small_payloads),
+              density, random.randint(*args.ring_sizes), random.randint(*args.times_to_run), random.randint(*args.small_payloads),
               random.randint(*args.large_payloads), random.uniform(*args.large_event_fractions))
       
       print(f"Generated stochastic point: {point}")
