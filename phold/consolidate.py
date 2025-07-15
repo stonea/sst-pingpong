@@ -105,6 +105,9 @@ def extract_parameters(results_dir):
   event_density = float(parts[4])
   ring_size = int(parts[5])
   time_to_run = int(parts[6])
+  small_payload = int(parts[7])
+  large_payload = int(parts[8])
+  large_event_fraction = float(parts[9])
 
   return {
     'Experiment Name': experiment_name,
@@ -113,7 +116,10 @@ def extract_parameters(results_dir):
     'Height': height,
     'Event Density': event_density,
     'Ring Size': ring_size,
-    'Time to Run (ns)': time_to_run
+    'Time to Run (ns)': time_to_run,
+    'Small Payload (bytes)': small_payload,
+    'Large Payload (bytes)': large_payload,
+    'Large Event Fraction': large_event_fraction
   }
 
 def extract_row(results_dir):
