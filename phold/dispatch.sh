@@ -9,7 +9,10 @@ height=$3
 eventDensity=$4
 ringSize=$5
 timeToRun=$6
-prefix=$7
+smallPayload=$7
+largePayload=$8
+largeEventFraction=$9
+prefix=${10}
 
 tmpFile=${prefix}.tmp
 timeFile=${prefix}.time
@@ -17,7 +20,7 @@ outFile=${prefix}.err
 outDir=${prefix}_dir
 
 
-simFlags="--N $height --M $width --eventDensity $eventDensity --timeToRun ${timeToRun}ns --numRings $ringSize"
+simFlags="--N $height --M $width --eventDensity $eventDensity --timeToRun ${timeToRun}ns --numRings $ringSize --smallPayload $smallPayload --largePayload $largePayload --largeEventFraction $largeEventFraction"
 
 sstFlags="--print-timing-info=true --parallel-load=SINGLE ${scriptDir}/phold_dist.py"
 

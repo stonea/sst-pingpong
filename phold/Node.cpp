@@ -3,6 +3,32 @@
 #include "Node.h"
 
 
+class PayloadEvent : public SST::Event {
+  public:
+    char * payload;
+
+    PayloadEvent() : SST::Event() {
+      payload = NULL;
+    }
+
+    PayloadEvent(int64_t size) : SST::Event() { 
+      payload = new char[size];
+      memset(payload, 0, size);
+    }
+    
+    void serialize_order(SST::Core::Serialization::serializer &ser)  override {
+      Event::serialize_order(ser);
+      ser & payload;
+    }
+    ~PayloadEvent() {
+      if (payload) {
+        delete[] payload;
+      }
+    }
+    ImplementSerializable(PayloadEvent);
+};
+
+
 Node::Node( SST::ComponentId_t id, SST::Params& params )
   : SST::Component(id)
 {
@@ -13,10 +39,19 @@ Node::Node( SST::ComponentId_t id, SST::Params& params )
   myRow = params.find<int>("i", -1);
   rowCount = params.find<int>("rowCount", -1);
   colCount = params.find<int>("colCount", -1);
+
+  smallPayload = params.find<int>("smallPayload", -1);
+  largePayload = params.find<int>("largePayload", -1);
+  largeEventFraction = params.find<double>("largeEventFraction", -1.0);
+
   if (myCol == -1) {std::cerr << "WARNING: Failed to get myCol\n";}
   if (myRow == -1) {std::cerr << "WARNING: Failed to get myRow\n";}
   if (rowCount == -1) {std::cerr << "WARNING: Failed to get rowCount\n";}
   if (colCount == -1) {std::cerr << "WARNING: Failed to get colCount\n";}
+  if (smallPayload == -1) {std::cerr << "WARNING: Failed to get small payload size\n";}
+  if (largePayload == -1) {std::cerr << "WARNING: Failed to get large payload size\n";}
+  if (largeEventFraction == -1) {std::cerr << "WARNING: Failed to get large event fraction\n";}
+
   myId = myRow * colCount + myCol;
   timeToRun = params.find<std::string>("timeToRun");
   eventDensity = params.find<double>("eventDensity");
@@ -48,7 +83,7 @@ void Node::setup() {
   double counter = eventDensity;
 
   while (counter >= 1.0) {
-    auto ev = new SST::Interfaces::StringEvent();
+    auto ev = createEvent();
     auto recipient = movementFunction();
     while (links.at(recipient) == nullptr) {
       recipient = movementFunction();
@@ -61,7 +96,7 @@ void Node::setup() {
   // Thus, every 1/counter components should get an extra event  
   int period = 1.0 / counter;
   if (myId % period == 0) {
-    auto ev = new SST::Interfaces::StringEvent();
+    auto ev = createEvent();
     auto recipient = movementFunction();
     while (links.at(recipient) == nullptr) {
       recipient = movementFunction();
@@ -81,7 +116,14 @@ bool Node::tick( SST::Cycle_t currentCycle ) {
   return false;
 }
 
+PayloadEvent * Node::createEvent() {
+  auto size = (urd(rng) < largeEventFraction) ? largePayload : smallPayload;
+  PayloadEvent* ev = new PayloadEvent(size);
+  return ev;
+}
+
 void Node::handleEvent(SST::Event *ev){
+  PayloadEvent * payloadEv = dynamic_cast<PayloadEvent*>(ev);
   delete ev;
   static SST::TimeConverter * ps = getTimeConverter("1ps");
 #ifdef SSTDEBUG
@@ -95,7 +137,7 @@ void Node::handleEvent(SST::Event *ev){
   }
 
   SST::SimTime_t psDelay = timestepIncrementFunction();
-  links[nextRecipientLinkId]->send(psDelay, ps, new SST::Interfaces::StringEvent());
+  links[nextRecipientLinkId]->send(psDelay, ps, createEvent());
 }
   
 size_t Node::movementFunction() {

@@ -10,7 +10,7 @@
 #endif
 
 
-
+class PayloadEvent;
 
 class Node : public SST::Component {
   public:
@@ -23,6 +23,8 @@ class Node : public SST::Component {
     bool tick( SST::Cycle_t currentCycle );
 
     void handleEvent(SST::Event *ev);
+
+    PayloadEvent * createEvent();
 
     virtual size_t movementFunction();
     virtual SST::SimTime_t timestepIncrementFunction();
@@ -45,7 +47,10 @@ class Node : public SST::Component {
      { "rowCount", "Total number of rows", "-1"},
      { "colCount", "Total number of columns", "-1"},
      { "timeToRun", "Time to run the simulation", "10ns" },
-     { "eventDensity", "Number of events to start with per component", "0.1" }
+     { "eventDensity", "Number of events to start with per component", "0.1" },
+     { "smallPayload", "Size of small event payloads in bytes", "8"},
+     { "largePayload", "Size of large event payloads in bytes", "1024"},
+     { "largeEventFraction", "Fraction of events that are large (default: 0.1)", "0.1"}
     )
 
     SST_ELI_DOCUMENT_PORTS(
@@ -74,6 +79,8 @@ class Node : public SST::Component {
     int numRings, numLinks, rowCount, colCount;
     double eventDensity;
     std::string timeToRun;
+    int smallPayload, largePayload;
+    float largeEventFraction;
 
     int recvCount;
 

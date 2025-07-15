@@ -17,6 +17,9 @@ parser.add_argument('--numRings', type=int, default=1, help='Number of rings of 
 parser.add_argument('--eventDensity', type=float, default=0.1, help="How many events to transmit per component.")
 parser.add_argument('--exponentMultiplier', type=float, default=1.0, help="Multiplier for exponential distribution of event generation")
 parser.add_argument('--nodeType', type=str, default='phold.Node', help='Type of node to create (default: phold.Node)')
+parser.add_argument('--smallPayload', type=int, default=8, help='Size of small event payloads in bytes')
+parser.add_argument('--largePayload', type=int, default=1024, help='Size of large event payloads in bytes')
+parser.add_argument('--largeEventFraction', type=float, default=0.1, help='Fraction of events that are large (default: 0.1)')
 args = parser.parse_args()
 
 
@@ -40,23 +43,28 @@ if my_rank == num_ranks - 1:  # Last rank gets the rest
   my_row_end = args.N
 
 
+def create_component(i,j):
+  comp = sst.Component(f"comp_{i}_{j}", args.nodeType)
+  comp.addParams({
+    "numRings": args.numRings,
+    "i": i,
+    "j": j,
+    'colCount': args.M,
+    "rowCount": args.N,
+    "timeToRun": args.timeToRun,
+    "multiplier": args.exponentMultiplier,
+    "eventDensity": args.eventDensity,
+    "smallPayload": args.smallPayload,
+    "largePayload": args.largePayload,
+    "largeEventFraction": args.largeEventFraction
+  })
+  comp.setRank(row_to_rank(i))
+  return comp
 
 for i in range(my_row_start, my_row_end):
   row = []
   for j in range(args.M):
-    comp = sst.Component(f"comp_{i}_{j}", args.nodeType)
-    comp.addParams({
-      "numRings": args.numRings,
-      "i": i,
-      "j": j,
-      'colCount': args.M,
-      "rowCount": args.N,
-      "timeToRun": args.timeToRun,
-      "multiplier": args.exponentMultiplier,
-      "eventDensity": args.eventDensity
-    })
-
-    comp.setRank(row_to_rank(i))
+    comp = create_component(i, j)
     row.append(comp)
   comps.append(row)
 
@@ -68,18 +76,7 @@ low_ghost_end = my_row_start
 for i in range(low_ghost_start, low_ghost_end):
   row = []
   for j in range(args.M):
-    comp = sst.Component(f"comp_{i}_{j}", args.nodeType)
-    comp.addParams({
-      "numRings": args.numRings,
-      "i": i,
-      "j": j,
-      'colCount': args.M,
-      "rowCount": args.N,
-      "timeToRun": args.timeToRun,
-      "multiplier": args.exponentMultiplier,
-      "eventDensity": args.eventDensity
-    })
-    comp.setRank(row_to_rank(i))
+    comp = create_component(i, j)
     row.append(comp)
   low_rows.append(row)
 comps = low_rows + comps
@@ -90,19 +87,7 @@ high_ghost_end = min(args.N, my_row_end + args.numRings)
 for i in range(high_ghost_start, high_ghost_end):
   row = []
   for j in range(args.M):
-    comp = sst.Component(f"comp_{i}_{j}", args.nodeType)
-    comp.addParams({
-      "numRings": args.numRings,
-      "i": i,
-      "j": j,
-      'colCount': args.M,
-      "rowCount": args.N,
-      "timeToRun": args.timeToRun,
-      "multiplier": args.exponentMultiplier,
-      "eventDensity": args.eventDensity
-    })
-    comp.setRank(row_to_rank(i))
-
+    comp = create_component(i,j)
     row.append(comp)
   comps.append(row)
 

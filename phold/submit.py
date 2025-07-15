@@ -30,6 +30,9 @@ def parse_arguments():
   parser.add_argument('--event_densities', '--event-densities', '--event-density', type=float_list, help="List of event densities to use for the benchmark, e.g., '0.1 0.5 10'", required=True)
   parser.add_argument('--times_to_run', '--times-to-run', '--time-to-run',type=int_list, help="List of times to run the benchmark, in nanoseconds, e.g., '1 1000 2500'", required=True)
   parser.add_argument('--ring_sizes', '--ring-sizes', '--ring-size', type=int_list, default=[1], help="How many rings of neighboring components each component should connect to, e.g., '1 2 4'. Default is [1].")
+  parser.add_argument('--small_payloads', '--small-payloads', '--small-payload', type=int_list, default=[8], help="List of small payload sizes in bytes, e.g., '8 16 32'. Default is [8].")
+  parser.add_argument('--large_payloads', '--large-payloads', '--large-payload', type=int_list, default=[1024], help="List of large payload sizes in bytes, e.g., '1024 2048 4096'. Default is [1024].")
+  parser.add_argument('--large_event_fractions', '--large-event-fractions', '--large-event-fraction', type=float_list, default=[0.0], help="List of fractions of large events, e.g., '0.1 0.2 0.5'. Default is [0.1].")
   parser.add_argument('--dry_run', '--dry-run', action='store_true', help="If set, only print the commands that would be run without executing them.")
   parser.add_argument('--name', type=str, default="phold", help="(Optional) Name of the benchmark job prepended to output files.")
   parser.add_argument('--weak_scaling', '--weak', '--weak-scaling', action='store_true', help="If set, use weak scaling. The height will be multiplied by the node count to maintain the per-node linking.")
@@ -61,24 +64,36 @@ if __name__ == "__main__":
       args.ring_sizes = [args.ring_sizes[0]] * 2
     if len(args.times_to_run) == 1:
       args.times_to_run = [args.times_to_run[0]] * 2
+    if len(args.small_payloads) == 1:
+      args.small_payloads = [args.small_payloads[0]] * 2
+    if len(args.large_payloads) == 1:
+      args.large_payloads = [args.large_payloads[0]] * 2
+    if len(args.large_event_fractions) == 1:
+      args.large_event_fractions = [args.large_event_fractions[0]] * 2
+    
 
     print(args.node_counts, args.widths, args.heights, args.event_densities, args.ring_sizes, args.times_to_run)
     parameter_space = []
     for i in range(args.stochastic):
       density = round(random.uniform(*args.event_densities), 2)
-      point = (random.randint(*args.node_counts), random.randint(*args.widths), random.randint(*args.heights), density, random.randint(*args.ring_sizes), random.randint(*args.times_to_run))
+      point = (random.randint(*args.node_counts), random.randint(*args.widths), random.randint(*args.heights), 
+              density, random.randint(*args.ring_sizes), random.randint(*args.times_to_run), random.randomint(*args.small_payloads),
+              random.randint(*args.large_payloads), random.uniform(*args.large_event_fractions))
+      
       print(f"Generated stochastic point: {point}")
       parameter_space.append(point)
   else:
-    parameter_space = itertools.product(args.node_counts, args.widths, args.heights, args.event_densities, args.ring_sizes, args.times_to_run)
+    parameter_space = itertools.product(args.node_counts, args.widths, args.heights, 
+                                        args.event_densities, args.ring_sizes, args.times_to_run,
+                                        args.small_payloads, args.large_payloads, args.large_event_fractions)
 
-  for (node_count, width, height, event_density, ring_size, time_to_run) in parameter_space:
+  for (node_count, width, height, event_density, ring_size, time_to_run, small_payload, large_payload, large_event_fraction) in parameter_space:
       if args.weak_scaling:
         height *= node_count
       
-      output_file = f"{args.name}_{node_count}_{width}_{height}_{event_density}_{ring_size}_{time_to_run}"
+      output_file = f"{args.name}_{node_count}_{width}_{height}_{event_density}_{ring_size}_{time_to_run}_{small_payload}_{large_payload}_{large_event_fraction}"
       sbatch_portion = f"sbatch -N {node_count} -o {output_file}.out"
-      command = f"{sbatch_portion} {script_dir}/dispatch.sh {node_count} {width} {height} {event_density} {ring_size} {time_to_run} {output_file}"
+      command = f"{sbatch_portion} {script_dir}/dispatch.sh {node_count} {width} {height} {event_density} {ring_size} {time_to_run} {small_payload} {large_payload} {large_event_fraction} {output_file}"
       print(command)
       if not args.dry_run:
         print(f"Running: {command}")
