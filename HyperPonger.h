@@ -272,10 +272,11 @@ class HyperPonger : public SST::Component {
 
     int64_t initialBalls;
     SST::RNG::MarsagliaRNG* rng;
+    static const int NUM_LINKS = 200;
 
     SST::Output out;
     SST::Link *linkN, *linkS, *linkW, *linkE;
-    SST::Link *hyperLink[200]; /* if this count changes, be sure to update loop in serialize_order*/
+    SST::Link *hyperLink[NUM_LINKS]; /* if this count changes, be sure to update loop in serialize_order*/
 };
 
 #endif

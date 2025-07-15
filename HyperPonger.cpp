@@ -309,7 +309,7 @@ void HyperPonger::serialize_order(SST::Core::Serialization::serializer& ser) {
   SST_SER(linkS)
   SST_SER(linkW)
   SST_SER(linkE)
-  for (size_t i = 0; i < 200; i++) {
+  for (size_t i = 0; i < NUM_LINKS; i++) {
     SST_SER(hyperLink[i])
   }
 }
