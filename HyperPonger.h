@@ -276,7 +276,7 @@ class HyperPonger : public SST::Component {
 
     SST::Output out;
     SST::Link *linkN, *linkS, *linkW, *linkE;
-    SST::Link *hyperLink[NUM_LINKS]; /* if this count changes, be sure to update loop in serialize_order*/
+    SST::Link *hyperLink[NUM_LINKS];
 };
 
 #endif
