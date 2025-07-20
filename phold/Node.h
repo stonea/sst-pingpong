@@ -10,7 +10,7 @@
 #endif
 
 
-class PayloadEvent;
+
 
 class Node : public SST::Component {
   public:
@@ -24,7 +24,7 @@ class Node : public SST::Component {
 
     void handleEvent(SST::Event *ev);
 
-    PayloadEvent * createEvent();
+    SST::Interfaces::StringEvent * createEvent();
 
     virtual size_t movementFunction();
     virtual SST::SimTime_t timestepIncrementFunction();

@@ -3,30 +3,6 @@
 #include "Node.h"
 
 
-class PayloadEvent : public SST::Event {
-  public:
-    char * payload;
-
-    PayloadEvent() : SST::Event() {
-      payload = NULL;
-    }
-
-    PayloadEvent(int64_t size) : SST::Event() { 
-      payload = new char[size];
-      memset(payload, 0, size);
-    }
-    
-    void serialize_order(SST::Core::Serialization::serializer &ser)  override {
-      Event::serialize_order(ser);
-      ser & payload;
-    }
-    ~PayloadEvent() {
-      if (payload) {
-        delete[] payload;
-      }
-    }
-    ImplementSerializable(PayloadEvent);
-};
 
 
 Node::Node( SST::ComponentId_t id, SST::Params& params )
@@ -116,14 +92,15 @@ bool Node::tick( SST::Cycle_t currentCycle ) {
   return false;
 }
 
-PayloadEvent * Node::createEvent() {
+SST::Interfaces::StringEvent * Node::createEvent() {
   auto size = (urd(rng) < largeEventFraction) ? largePayload : smallPayload;
-  PayloadEvent* ev = new PayloadEvent(size);
+  std::string str(size, 'a'); // Create a string of size 'size' filled with 'a'
+  SST::Interfaces::StringEvent* ev = new SST::Interfaces::StringEvent(str);
   return ev;
 }
 
 void Node::handleEvent(SST::Event *ev){
-  PayloadEvent * payloadEv = dynamic_cast<PayloadEvent*>(ev);
+  SST::Interfaces::StringEvent * payloadEv = dynamic_cast<SST::Interfaces::StringEvent*>(ev);
   delete ev;
   static SST::TimeConverter * ps = getTimeConverter("1ps");
 #ifdef SSTDEBUG
