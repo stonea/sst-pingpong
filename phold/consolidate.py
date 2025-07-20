@@ -4,6 +4,8 @@ import sys
 import os
 
 
+
+
 def identify_result_dirs(experiment_name=None):
   """
   Identify directories containing result files.
@@ -122,13 +124,17 @@ def extract_parameters(results_dir):
     'Large Event Fraction': large_event_fraction
   }
 
+failures = []
 def extract_row(results_dir):
+  global failures
   try:
     parameters = extract_parameters(results_dir)
     time_data = extract_time_data(results_dir)
     sync_data = extract_sync_data(results_dir)
   except:
+
     print(f"Error extracting data from {results_dir}. Skipping this directory.")
+    failures += [results_dir]
     return None
   
   return parameters | time_data | sync_data
@@ -159,5 +165,10 @@ if __name__ == "__main__":
       f.write(','.join(entry.keys()) + "\n")
       for entry in data:
           f.write(','.join(map(str, entry.values())) + "\n")
+  
+  if len(failures) > 0:
+    with open('failures.txt', 'w') as f:
+      for failure in failures:
+        f.write(f"{failure}\n")
 
   print(f"Results consolidated into {outfile}.")
