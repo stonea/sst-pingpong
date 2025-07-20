@@ -97,9 +97,9 @@ def stochastic_grid_shapes(args):
   for i in range(args.stochastic):
     height = random.randint(args.heights[0], args.heights[1])
     if args.weak_scaling:
-      grid_heights.append(height)
-    else:
       grid_heights.append(height * node_counts[i])
+    else:
+      grid_heights.append(height)
   
   grid_widths = []
   if args.components_per_node is not None:
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     parameters = list(zip(shape_parameters, non_shape_parameters))
   else:
     # Non stochastic run, so we do cartesian product of the parameters
-    
+
     shape_parameters = calculate_grid_shapes(args)
     non_shape_parameters = list(itertools.product(args.event_densities, args.ring_sizes, args.times_to_run,
                                         args.small_payloads, args.large_payloads, args.large_event_fractions))
