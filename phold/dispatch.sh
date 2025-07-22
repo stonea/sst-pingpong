@@ -4,15 +4,16 @@ scriptDir="$(dirname "$(scontrol show job "$SLURM_JOB_ID" | awk -F= '/Command=/{
 echo "$scriptDir"
 
 nodeCount=$1
-width=$2
-height=$3
-eventDensity=$4
-ringSize=$5
-timeToRun=$6
-smallPayload=$7
-largePayload=$8
-largeEventFraction=$9
-prefix=${10}
+threadCount=$2
+width=$3
+height=$4
+eventDensity=$5
+ringSize=$6
+timeToRun=$7
+smallPayload=$8
+largePayload=$9
+largeEventFraction=$10
+prefix=${11}
 
 tmpFile=${prefix}.tmp
 timeFile=${prefix}.time
@@ -22,9 +23,9 @@ outDir=${prefix}_dir
 
 simFlags="--N $height --M $width --eventDensity $eventDensity --timeToRun ${timeToRun}ns --numRings $ringSize --smallPayload $smallPayload --largePayload $largePayload --largeEventFraction $largeEventFraction"
 
-sstFlags="--print-timing-info=true --parallel-load=SINGLE ${scriptDir}/phold_dist.py"
+sstFlags="--num-threads $threadCount --print-timing-info=true --parallel-load=SINGLE ${scriptDir}/phold_dist.py"
 
-srunPortion="srun -N $nodeCount" 
+srunPortion="srun -N $nodeCount --cpus-per-task=$threadCount --ntasks-per-node=1" 
 
 
 mkdir $outDir

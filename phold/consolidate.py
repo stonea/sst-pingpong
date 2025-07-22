@@ -41,34 +41,57 @@ def extract_sync_data(result_dir):
   for sync_file in sync_files:
     with open(sync_file, 'r') as f:
       lines = f.readlines()
-      count_line = lines[-4]
-      time_line = lines[-3]
-      count = int(count_line.split(':')[1].strip())
-      time = float(time_line.split(' ')[-2].strip())
-      sync_data.append((count, time))
+      thread_count_line = lines[-11]
+      thread_time_line = lines[-10]
+      thread_count = int(thread_count_line.split(':')[1].strip())
+      thread_time = float(thread_time_line.split(' ')[-2].strip())
+      rank_count_line = lines[-7]
+      rank_time_line = lines[-6]
+      rank_count = int(rank_count_line.split(':')[1].strip())
+      rank_time = float(rank_time_line.split(' ')[-2].strip())
+      sync_data.append((thread_count, thread_time, rank_count, rank_time))
 
-  sync_counts = [count for count, _ in sync_data]
-  sync_times = [time for _, time in sync_data]
 
-  sync_time_mean = np.mean(sync_times) if sync_times else None
-  sync_time_std = np.std(sync_times) if sync_times else None
-  sync_count_mean = np.mean(sync_counts) if sync_counts else None
-  sync_count_std = np.std(sync_counts) if sync_counts else None
-  sync_time_max = np.max(sync_times) if sync_times else None
-  sync_time_min = np.min(sync_times) if sync_times else None
-  sync_count_max = np.max(sync_counts) if sync_counts else None
-  sync_count_min = np.min(sync_counts) if sync_counts else None
+  thread_sync_counts = [count for count, _, _, _ in sync_data]
+  thread_sync_times = [time for _, time, _, _ in sync_data]
+  rank_sync_counts = [count for _, _, count, _ in sync_data]
+  rank_sync_times = [time for _, _, _, time in sync_data]
 
+  rank_sync_time_mean = np.mean(rank_sync_times) if rank_sync_times else None
+  rank_sync_time_std = np.std(rank_sync_times) if rank_sync_times else None
+  rank_sync_count_mean = np.mean(rank_sync_counts) if rank_sync_counts else None
+  rank_sync_count_std = np.std(rank_sync_counts) if rank_sync_counts else None
+  rank_sync_time_max = np.max(rank_sync_times) if rank_sync_times else None
+  rank_sync_time_min = np.min(rank_sync_times) if rank_sync_times else None
+  rank_sync_count_max = np.max(rank_sync_counts) if rank_sync_counts else None
+  rank_sync_count_min = np.min(rank_sync_counts) if rank_sync_counts else None
+
+  thread_sync_time_mean = np.mean(thread_sync_times) if thread_sync_times else None
+  thread_sync_time_std = np.std(thread_sync_times) if thread_sync_times else None
+  thread_sync_count_mean = np.mean(thread_sync_counts) if thread_sync_counts else None
+  thread_sync_count_std = np.std(thread_sync_counts) if thread_sync_counts else None
+  thread_sync_time_max = np.max(thread_sync_times) if thread_sync_times else None
+  thread_sync_time_min = np.min(thread_sync_times) if thread_sync_times else None
+  thread_sync_count_max = np.max(thread_sync_counts) if thread_sync_counts else None
+  thread_sync_count_min = np.min(thread_sync_counts) if thread_sync_counts else None
 
   return {
-    'Sync Time Max (s)': sync_time_max,
-    'Sync Time Min (s)': sync_time_min,
-    'Sync Time Mean (s)': sync_time_mean,
-    'Sync Time Std (s)': sync_time_std,
-    'Sync Count Max': sync_count_max,
-    'Sync Count Min': sync_count_min,
-    'Sync Count Mean': sync_count_mean,
-    'Sync Count Std': sync_count_std
+    'Rank Sync Time Max (s)': rank_sync_time_max,
+    'Rank Sync Time Min (s)': rank_sync_time_min,
+    'Rank Sync Time Mean (s)': rank_sync_time_mean,
+    'Rank Sync Time Std (s)': rank_sync_time_std,
+    'Rank Sync Count Max': rank_sync_count_max,
+    'Rank Sync Count Min': rank_sync_count_min,
+    'Rank Sync Count Mean': rank_sync_count_mean,
+    'Rank Sync Count Std': rank_sync_count_std,
+    'Thread Sync Time Max (s)': thread_sync_time_max,
+    'Thread Sync Time Min (s)': thread_sync_time_min,
+    'Thread Sync Time Mean (s)': thread_sync_time_mean,
+    'Thread Sync Time Std (s)': thread_sync_time_std,
+    'Thread Sync Count Max': thread_sync_count_max,
+    'Thread Sync Count Min': thread_sync_count_min,
+    'Thread Sync Count Mean': thread_sync_count_mean,
+    'Thread Sync Count Std': thread_sync_count_std
   }
 
 
@@ -102,18 +125,20 @@ def extract_parameters(results_dir):
   
   experiment_name = parts[0]
   node_count = int(parts[1])
-  width = int(parts[2])
-  height = int(parts[3])
-  event_density = float(parts[4])
-  ring_size = int(parts[5])
-  time_to_run = int(parts[6])
-  small_payload = int(parts[7])
-  large_payload = int(parts[8])
-  large_event_fraction = float(parts[9])
+  thread_count = int(parts[2])  
+  width = int(parts[3])
+  height = int(parts[4])
+  event_density = float(parts[5])
+  ring_size = int(parts[6])
+  time_to_run = int(parts[7])
+  small_payload = int(parts[8])
+  large_payload = int(parts[9])
+  large_event_fraction = float(parts[10])
 
   return {
     'Experiment Name': experiment_name,
     'Node Count': node_count,
+    'Thread Count': thread_count,
     'Width': width,
     'Height': height,
     'Event Density': event_density,
