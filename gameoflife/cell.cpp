@@ -52,7 +52,9 @@ void Cell::setup() {
 }
 
 void Cell::handleEvent(SST::Event *ev) {
-  aliveNeighbors += 1;
+  if(dynamic_cast<GolEvent*>(ev)->isAlive()) {
+    aliveNeighbors += 1;
+  }
   delete ev;
 }
 
@@ -87,7 +89,7 @@ void Cell::report() {
   if(getName().back() == '9') {
     std::cout << std::endl;
   }
-  if(getName() == "cell_9_9") {
+  if(getName() == "cell_9_9" || getName() == "board0.cell_9_9") {
     std::cout << std::endl;
   }
 }
