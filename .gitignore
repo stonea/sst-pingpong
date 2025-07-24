@@ -3,3 +3,15 @@
 *.tmp
 .vscode
 libpingpong.so*
+*dir
+rank*
+*.csv
+hpcstruct
+*.log
+*.json
+*.dot
+hpcstruct*
+*database*
+*hpc-measurements*
+*.pyc
+*.so
