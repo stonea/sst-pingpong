@@ -6,16 +6,16 @@
 
 class GolEvent;
 
-class Cell : public SST::Component {
+class OnDemandCell : public SST::Component {
   public:
-    Cell( SST::ComponentId_t id, SST::Params& params );
-    ~Cell();
+    OnDemandCell( SST::ComponentId_t id, SST::Params& params );
+    ~OnDemandCell();
 
     // Register the component
     SST_ELI_REGISTER_COMPONENT(
-      Cell,          // class
-      "gol",         // element library
-      "cell",        // component
+      OnDemandCell,   // class
+      "gol",          // element library
+      "onDemandCell", // component
       SST_ELI_ELEMENT_VERSION( 1, 0, 0 ),
       "game of life component",
       COMPONENT_CATEGORY_UNCATEGORIZED
@@ -23,9 +23,7 @@ class Cell : public SST::Component {
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-     { "isAlive",      "Indicates if space has a cell (is alive)", "true" },
-     { "postIfDead",   "Indicates the space should post a message to neighbor even if dead", "true" },
-     { "shouldReport", "Print progress as conducting the simulation", "false" }
+     { "isAlive", "Indicates if space has a cell (is alive)", "true" }
     )
 
     // Port name, description, event type
@@ -49,9 +47,11 @@ class Cell : public SST::Component {
     void handleEvent(SST::Event *ev);
     bool clockTick(SST::Cycle_t currentCycle);
 
-    bool isAlive;
+    bool isAlive, clockOn;
     int aliveNeighbors;
     SST::Link *nwPort, *nPort, *nePort, *wPort, *ePort, *swPort, *sPort, *sePort;
+    SST::TimeConverter *clockTc;
+    SST::Clock::Handler2<OnDemandCell, &OnDemandCell::clockTick> *clockHandler;
 };
 
 #endif
