@@ -4,6 +4,7 @@ import argparse
 my_rank     = sst.getMyMPIRank()
 num_ranks   = sst.getMPIRankCount()
 num_threads = sst.getThreadCount()
+print('initializing simulation on rank', my_rank, 'of', num_ranks, 'with', num_threads, 'threads')
 
 parser = argparse.ArgumentParser(
   prog='PHOLD',
@@ -22,16 +23,22 @@ parser.add_argument('--largePayload', type=int, default=1024, help='Size of larg
 parser.add_argument('--largeEventFraction', type=float, default=0.1, help='Fraction of events that are large (default: 0.1)')
 args = parser.parse_args()
 
-
+rows_per_rank = args.N // num_ranks
+cols_per_thread = args.M // num_threads
 def row_to_rank(i):
   if i < 0 or i >= args.N:
     raise ValueError(f"Row index {i} is out of bounds for N={args.N}")
   # Calculate the rank based on the row index
   return min(i // rows_per_rank, num_ranks - 1)
 
+def col_to_thread(i):
+  if i < 0 or i >= args.M:
+    raise ValueError(f"Column index {i} is out of bounds for M={args.M}")
+  # Calculate the thread based on the column index
+  return min(i // cols_per_thread, num_threads - 1)
+  
 
 
-rows_per_rank = args.N // num_ranks
 
 comps = []
 
@@ -58,12 +65,12 @@ def create_component(i,j):
     "largePayload": args.largePayload,
     "largeEventFraction": args.largeEventFraction
   })
-  comp.setRank(row_to_rank(i))
+  comp.setRank(row_to_rank(i), col_to_thread(j))
   return comp
 
 for i in range(my_row_start, my_row_end):
   row = []
-  for j in range(args.M):
+  for j in range(0,args.M):
     comp = create_component(i, j)
     row.append(comp)
   comps.append(row)

@@ -25,6 +25,7 @@ def parse_arguments():
 
   parser.add_argument('--node_counts', '--node-counts', type=int_list, help="List of node counts to use for the benchmark, e.g., '4 8 16'", required=True)
   parser.add_argument('--thread_counts', '--thread-counts', '--thread-count', type=int_list, help="List of thread counts to use for the benchmark, e.g., '1 2 4'. Default is [1].", default=[1])
+  parser.add_argument('--rank_counts', '--rank-counts', '--rank-count', '--ranks_per_node', '--ranks-per-node', type=int_list, default=[1], help="Number of MPI ranks to run per node. Default is 1.")
   parser.add_argument('--widths', '--width', type=int_list, help="List of widths to use for the benchmark, e.g., '100 200 250'", default=None)
   parser.add_argument('--components_per_node', '--components-per-node',  type=int_list, default=None, help="List of components-per-node values to use for the simulation. This is used to calculate widths.")
   parser.add_argument('--heights', '--height', type=int_list, help="List of heights to use for the benchmark, e.g., '100 200 250'. The grid is distributed over this dimension.", required=True)
@@ -61,6 +62,8 @@ def convert_to_ranges(args):
       args.node_counts = [args.node_counts[0]] * 2
     if len(args.thread_counts) == 1:
       args.thread_counts = [args.thread_counts[0]] * 2
+    if len(args.rank_counts) == 1:
+      args.rank_counts = [args.rank_counts[0]] * 2
     if args.widths is not None and len(args.widths) == 1:
       args.widths = [args.widths[0]] * 2
     if len(args.heights) == 1:
@@ -99,6 +102,10 @@ def stochastic_grid_shapes(args):
     thread_count = random.randint(args.thread_counts[0], args.thread_counts[1])
     thread_counts.append(thread_count)
   
+  rank_counts = []
+  for i in range(args.stochastic):
+    rank_count = random.randint(args.rank_counts[0], args.rank_counts[1])
+    rank_counts.append(rank_count)
   grid_heights = []
   for i in range(args.stochastic):
     height = random.randint(args.heights[0], args.heights[1])
@@ -118,35 +125,35 @@ def stochastic_grid_shapes(args):
     for i in range(args.stochastic):
       grid_widths.append(random.randint(args.widths[0], args.widths[1]))
 
-  return list(zip(grid_widths, grid_heights, node_counts, thread_counts))
+  return list(zip(grid_widths, grid_heights, node_counts, rank_counts, thread_counts))
 
 
 # The weak scaling determines if the "height" parameter is a per-node value or the entire grid.
 def calculate_grid_shapes(args):
   '''
   Creates a list of tuples representing the global grid shape and node counts for the different runs.
-  Each tuple is (width, height, node_count, thread_count)
+  Each tuple is (width, height, node_count, rank_count, thread_count)
   '''
   shapes = []
   if not args.weak_scaling and args.components_per_node is None:
-    return list(itertools.product(args.widths, args.heights, args.node_counts, args.thread_counts))
+    return list(itertools.product(args.widths, args.heights, args.node_counts, args.rank_counts, args.thread_counts))
   elif args.components_per_node is None:
     # Weak scaling on height per node
-    for per_node_width, per_node_height, node_count, thread_count in itertools.product(args.widths, args.heights, args.node_counts, args.thread_counts):
-      shapes.append((per_node_width, per_node_height * node_count, node_count, thread_count))
+    for per_node_width, per_node_height, node_count, rank_count, thread_count in itertools.product(args.widths, args.heights, args.node_counts, args.rank_counts, args.thread_counts):
+      shapes.append((per_node_width, per_node_height * node_count, node_count, rank_count, thread_count))
   elif not args.weak_scaling:
     # Weak scaling
-    for per_node_component_count, grid_height, node_count, thread_count in itertools.product(args.components_per_node, args.heights, args.node_counts, args.thread_counts):
+    for per_node_component_count, grid_height, node_count, rank_count, thread_count in itertools.product(args.components_per_node, args.heights, args.node_counts, args.rank_counts, args.thread_counts):
       component_count = node_count * per_node_component_count
       grid_width = math.ceil(component_count / grid_height)
-      shapes.append((grid_width, grid_height, node_count, thread_count))
+      shapes.append((grid_width, grid_height, node_count, rank_count, thread_count))
   else:
     # We are weak scaling and using a per-node component count.
-    for per_node_component_count, per_node_height, node_count, thread_count in itertools.product(args.components_per_node, args.heights, args.node_counts, args.thread_counts):
+    for per_node_component_count, per_node_height, node_count, rank_count, thread_count in itertools.product(args.components_per_node, args.heights, args.node_counts, args.rank_counts, args.thread_counts):
       component_count = node_count * per_node_component_count
       grid_height = per_node_height * node_count
       grid_width = math.ceil(component_count / grid_height)
-      shapes.append((grid_width, grid_height, node_count, thread_count))
+      shapes.append((grid_width, grid_height, node_count, rank_count, thread_count))
   return shapes
 
 
@@ -179,10 +186,10 @@ if __name__ == "__main__":
     parameters = list(itertools.product(shape_parameters, non_shape_parameters))
 
   print("parameters: ", parameters)
-  for ((width, height, node_count, thread_count), (event_density, ring_size, time_to_run, small_payload, large_payload, large_event_fraction)) in parameters:
-    output_file = f"{args.name}_{node_count}_{thread_count}_{width}_{height}_{event_density}_{ring_size}_{time_to_run}_{small_payload}_{large_payload}_{large_event_fraction}"
+  for ((width, height, node_count, rank_count, thread_count), (event_density, ring_size, time_to_run, small_payload, large_payload, large_event_fraction)) in parameters:
+    output_file = f"{args.name}_{node_count}_{rank_count}_{thread_count}_{width}_{height}_{event_density}_{ring_size}_{time_to_run}_{small_payload}_{large_payload}_{large_event_fraction}"
     sbatch_portion = f"sbatch -N {node_count} -o {output_file}.out"
-    command = f"{sbatch_portion} {script_dir}/dispatch.sh {node_count} {thread_count} {width} {height} {event_density} {ring_size} {time_to_run} {small_payload} {large_payload} {large_event_fraction} {output_file}"
+    command = f"{sbatch_portion} {script_dir}/dispatch.sh {node_count} {rank_count} {thread_count} {width} {height} {event_density} {ring_size} {time_to_run} {small_payload} {large_payload} {large_event_fraction} {output_file}"
     print(command)
     if not args.dry_run:
       print(f"Running: {command}")
