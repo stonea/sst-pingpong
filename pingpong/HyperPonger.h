@@ -28,7 +28,7 @@ class HyperPonger : public SST::Component {
 
     // Parameter name, description, default value
     SST_ELI_DOCUMENT_PARAMS(
-     { "numBalls", "Balls currently on the component", "0" },
+     { "numBalls", "Balls currently on the component", "0" }
     )
 
     // Port name, description, event type
