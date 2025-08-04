@@ -85,13 +85,13 @@ as it compiles MPICH and SST from source.
 
 ### Step 2: Set Up SST Benchmarks
 
-Navigate to the `sst-benchmarks` directory where `pingpong.py` lives. This step
+Navigate to the `sst-benchmarks/pingpong` directory where `pingpong.py` lives. This step
 assumes you have already cloned this repository and are currently working from
 the directory where the `Containerfile` is located.
 
 ```bash
 # Change to the benchmarks directory
-cd ..
+cd ../pingpong
 ```
 
 ### Step 3: Run the SST Container
@@ -660,8 +660,10 @@ SST.
 If you do not have a component library, you can use the pingpong benchmark
 from the `sst-benchmarks` repository, https://github.com/brandon-neth/sst-benchmarks.
 
+If using the pingpong benchmark, set your working directory to the `pingpong/` directory.
+Otherwise, set your working directory to where you build your SST component library.
 
-From your working directory, you can run the following command to run the SST
+From your working directory, you can run the following command to launch the SST
 container:
 
 ```bash
@@ -678,9 +680,7 @@ Example using the sst-benchmarks repository:
 
 ```bash
 podman run -it -v $(pwd):/workspace --rm sst:latest
-# Inside the container, navigate to the benchmarks directory
-cd /workspace/sst-benchmarks
-# Build the benchmarks
+# Inside the container, build the benchmarks
 make
 # Run a benchmark simulation
 sst pingpong.py -- --corners
@@ -697,7 +697,7 @@ It assumes you have the SST container built and stored in a podman OCI archive.
 apptainer build sst-15.0.0.sif oci-archive://sst-15.0.0.tar
 
 # Run with apptainer
-cd sst-benchmarks
+cd sst-benchmarks/pingpong
 apptainer run --bind $(pwd):/workspace --pwd /workspace sst-15.0.0.sif
 
 # Inside the container, run the same commands:
@@ -774,3 +774,4 @@ When the job is finished, the output will be in the file `output.o<jobID>`
 - Verify the benchmarks built successfully: `ls *.so`
 - Check SST installation: `sst --version`
 - Ensure you're in the correct directory inside the container: `pwd`
+- Make sure the container image is on a file system available to all the compute nodes
