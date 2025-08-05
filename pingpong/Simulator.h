@@ -50,7 +50,7 @@ class Simulator : public SST::Component {
   // needed for serialization
   Simulator();
   void serialize_order(SST::Core::Serialization::serializer& ser) override;
-  ImplementSerializable(Simulator)
+  ImplementSerializable(Simulator);
   #endif
 
 };

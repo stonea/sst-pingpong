@@ -108,15 +108,15 @@ void HyperPonger::sendOutRandomBall() {
 #ifdef ENABLE_SSTCHECKPOINT
 void HyperPonger::serialize_order(SST::Core::Serialization::serializer& ser) {
   SST::Component::serialize_order(ser);
-  SST_SER(initialBalls)
-  SST_SER(rng)
-  SST_SER(out)
-  SST_SER(linkN)
-  SST_SER(linkS)
-  SST_SER(linkW)
-  SST_SER(linkE)
+  SST_SER(initialBalls);
+  SST_SER(rng);
+  SST_SER(out);
+  SST_SER(linkN);
+  SST_SER(linkS);
+  SST_SER(linkW);
+  SST_SER(linkE);
   for (size_t i = 0; i < NUM_LINKS; i++) {
-    SST_SER(hyperLink[i])
+    SST_SER(hyperLink[i]);
   }
 }
 #endif

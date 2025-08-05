@@ -143,17 +143,17 @@ void Ponger::printStatus(SST::Output& out){
 #ifdef ENABLE_SSTCHECKPOINT
 void Ponger::serialize_order(SST::Core::Serialization::serializer& ser) {
   SST::Component::serialize_order(ser);
-  SST_SER(ballsHeadingNorth)
-  SST_SER(ballsHeadingSouth)
-  SST_SER(ballsHeadingWest)
-  SST_SER(ballsHeadingEast)
-  SST_SER(northPort)
-  SST_SER(southPort)
-  SST_SER(westPort)
-  SST_SER(eastPort)
+  SST_SER(ballsHeadingNorth);
+  SST_SER(ballsHeadingSouth);
+  SST_SER(ballsHeadingWest);
+  SST_SER(ballsHeadingEast);
+  SST_SER(northPort);
+  SST_SER(southPort);
+  SST_SER(westPort);
+  SST_SER(eastPort);
 
   #ifdef ENABLE_SSTDBG
-    SST_SER(dbg)
+    SST_SER(dbg);
   #endif
 }
 #endif
