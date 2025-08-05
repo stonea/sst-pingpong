@@ -12,7 +12,7 @@ class BallEvent : public SST::Event {
 
     void serialize_order(SST::Core::Serialization::serializer &ser)  override {
       Event::serialize_order(ser);
-      ser & count;
+      SST_SER(count);
     }
 
     // Register this event as serializable
