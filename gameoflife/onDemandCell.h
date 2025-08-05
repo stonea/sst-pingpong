@@ -40,6 +40,12 @@ class OnDemandCell : public SST::Component {
 
     void setup() override;
 
+    #ifdef ENABLE_SSTCHECKPOINT
+      OnDemandCell() { }
+      void serialize_order(SST::Core::Serialization::serializer& ser) override;
+      ImplementSerializable(OnDemandCell)
+    #endif
+
   private:
     void update();
     void communicate();
