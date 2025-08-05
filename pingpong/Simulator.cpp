@@ -49,12 +49,12 @@ void Simulator::printStatus(SST::Output& out){
 #ifdef ENABLE_SSTCHECKPOINT
 void Simulator::serialize_order(SST::Core::Serialization::serializer& ser) {
   SST::Component::serialize_order(ser);
-  SST_SER(timeToRun)
-  SST_SER(gVerbose)
-  SST_SER(gArtificialWork)
+  SST_SER(timeToRun);
+  SST_SER(gVerbose);
+  SST_SER(gArtificialWork);
 
   #ifdef ENABLE_SSTDBG
-    SST_SER(dbg)
+    SST_SER(dbg);
   #endif
 }
 #endif
