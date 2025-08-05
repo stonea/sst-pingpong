@@ -13,6 +13,7 @@ class GolEvent : public SST::Event {
 
     void serialize_order(SST::Core::Serialization::serializer &ser) override {
       Event::serialize_order(ser);
+      SST_SER(_isAlive);
     }
     ImplementSerializable(GolEvent);
 };
@@ -106,6 +107,8 @@ bool Cell::clockTick(SST::Cycle_t currentCycle) {
 
 #ifdef ENABLE_SSTCHECKPOINT
   void Cell::serialize_order(SST::Core::Serialization::serializer& ser) {
+    SST::Component::serialize_order(ser);
+    SST_SER(isAlive);
     SST_SER(postIfDead);
     SST_SER(shouldReport);
     SST_SER(aliveNeighbors);
