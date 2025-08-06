@@ -33,15 +33,27 @@ HyperPonger::HyperPonger( SST::ComponentId_t id, SST::Params& params )
   rng = new SST::RNG::MarsagliaRNG();
   initialBalls = params.find<int64_t>("numBalls", 0);
 
-  linkN = configureLink("port_n", new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this));
-  linkS = configureLink("port_s", new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this));
-  linkW = configureLink("port_w", new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this));
-  linkE = configureLink("port_e", new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this));
+  SST::Link *n, *s, *w, *e;
+  auto *evHandler = new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this);
+  n = configureLink("port_n", evHandler);
+  s = configureLink("port_s", evHandler);
+  w = configureLink("port_w", evHandler);
+  e = configureLink("port_e", evHandler);
+
+  #ifndef USE_GETLINK_API
+  linkN = n;
+  linkS = s;
+  linkW = w;
+  linkE = e;
 
   for(int i = 0; i < NUM_LINKS; i++) {
-    hyperLink[i] = configureLink("port_" + std::to_string(i),
-      new SST::Event::Handler2<HyperPonger, &HyperPonger::handleEvent>(this));
+    hyperLink[i] = configureLink("port_" + std::to_string(i),  evHandler);
   }
+  #else
+  for(int i = 0; i < NUM_LINKS; i++) {
+    configureLink("port_" + std::to_string(i),  evHandler);
+  }
+  #endif
 }
 
 #ifdef ENABLE_SSTCHECKPOINT
@@ -74,33 +86,69 @@ void HyperPonger::sendOutRandomBall() {
   rndNumber = (rndNumber & 0x0000FFFF) ^ ((rndNumber & 0xFFFF0000) >> 16);
   rndNumber = abs((int)(rndNumber % 204));
 
+  SST::Link *tgtLink = nullptr;
   if(rndNumber == 0) {
-    if(isPortConnected("port_n")) { linkN->send(new BallEvent(1)); }
+    #ifdef USE_GETLINK_API
+    tgtLink = getLink("port_n");
+    #else
+    tgtLink = isPortConnected("port_n") ? linkN : nullptr;
+    #endif
+
+    if(tgtLink != nullptr) { tgtLink->send(new BallEvent(1)); }
     else { rndNumber += 1; }
   }
 
   if(rndNumber == 1) {
-    if(isPortConnected("port_s")) { linkS->send(new BallEvent(1)); }
+    #ifdef USE_GETLINK_API
+    tgtLink = getLink("port_s");
+    #else
+    tgtLink = isPortConnected("port_s") ? linkS : nullptr;
+    #endif
+
+    if(tgtLink != nullptr) { tgtLink->send(new BallEvent(1)); }
     else { rndNumber += 1; }
   }
 
   if(rndNumber == 2) {
-    if(isPortConnected("port_w")) { linkW->send(new BallEvent(1)); }
+    #ifdef USE_GETLINK_API
+    tgtLink = getLink("port_w");
+    #else
+    tgtLink = isPortConnected("port_w") ? linkW : nullptr;
+    #endif
+
+    if(tgtLink != nullptr) { tgtLink->send(new BallEvent(1)); }
     else { rndNumber += 1; }
   }
 
   if(rndNumber == 3) {
-    if(isPortConnected("port_e")) { linkE->send(new BallEvent(1)); }
+    #ifdef USE_GETLINK_API
+    tgtLink = getLink("port_e");
+    #else
+    tgtLink = isPortConnected("port_e") ? linkE : nullptr;
+    #endif
+
+    if(tgtLink != nullptr) { tgtLink->send(new BallEvent(1)); }
     else { rndNumber += 1; }
   }
 
   if(rndNumber > 3)  {
     int hyperPort = rndNumber - 4;
-    if(isPortConnected("port_" + std::to_string(hyperPort))) {
-      hyperLink[hyperPort]->send(new BallEvent(1));
+    #ifdef USE_GETLINK_API
+    tgtLink = getLink("port_" + std::to_string(hyperPort));
+    #else
+    tgtLink = isPortConnected("port_" + std::to_string(hyperPort)) ? hyperLink[hyperPort] : nullptr;
+    #endif
+
+    if(tgtLink != nullptr) {
+      tgtLink->send(new BallEvent(1));
     } else {
       // we don't have self links back in this topology.
-      hyperLink[hyperPort+1]->send(new BallEvent(1));
+      #ifdef USE_GETLINK_API
+      tgtLink = getLink("port_" + std::to_string((hyperPort+1) % NUM_LINKS));
+      tgtLink->send(new BallEvent(1));
+      #else
+      hyperLink[(hyperPort+1) % NUM_LINKS]->send(new BallEvent(1));
+      #endif
     }
   }
 }
