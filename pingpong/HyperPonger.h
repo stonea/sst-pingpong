@@ -55,9 +55,10 @@ class HyperPonger : public SST::Component {
     SST::RNG::MarsagliaRNG* rng;
     static const int NUM_LINKS = 200;
 
-    SST::Output out;
+#ifndef USE_GETLINK_API
     SST::Link *linkN, *linkS, *linkW, *linkE;
     SST::Link *hyperLink[NUM_LINKS];
+#endif
 };
 
 #endif
